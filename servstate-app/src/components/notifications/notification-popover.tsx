@@ -28,7 +28,7 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { cn } from '@/lib/utils';
 import {
   getNotificationsByRole,
-  getUnreadCount,
+  getUnreadNotificationCount,
   markAsRead,
   markAllAsRead,
   formatNotificationTime,
@@ -55,7 +55,7 @@ export function NotificationPopover({ viewMode }: NotificationPopoverProps) {
   const [notifications, setNotifications] = useState(() =>
     getNotificationsByRole(viewMode).slice(0, 7)
   );
-  const unreadCount = getUnreadCount(viewMode);
+  const unreadCount = getUnreadNotificationCount(viewMode);
 
   const handleMarkAsRead = (id: string) => {
     markAsRead(id);

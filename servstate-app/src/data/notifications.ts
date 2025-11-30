@@ -188,7 +188,7 @@ export function getUnreadNotifications(role: NotificationRole): Notification[] {
   return getNotificationsByRole(role).filter((n) => !n.read);
 }
 
-export function getUnreadCount(role: NotificationRole): number {
+export function getUnreadNotificationCount(role: NotificationRole): number {
   return getUnreadNotifications(role).length;
 }
 
