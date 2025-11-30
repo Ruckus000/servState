@@ -86,15 +86,14 @@ export default function BorrowerNotificationsPage() {
       <PageHeader
         title="Notifications"
         description="Stay updated on your mortgage account activity"
-        action={
-          unreadCount > 0 && (
-            <Button variant="outline" onClick={handleMarkAllAsRead}>
-              <CheckCircle className="mr-2 h-4 w-4" />
-              Mark all as read
-            </Button>
-          )
-        }
-      />
+      >
+        {unreadCount > 0 && (
+          <Button variant="outline" onClick={handleMarkAllAsRead}>
+            <CheckCircle className="mr-2 h-4 w-4" />
+            Mark all as read
+          </Button>
+        )}
+      </PageHeader>
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-4">

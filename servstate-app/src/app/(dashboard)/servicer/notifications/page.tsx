@@ -87,15 +87,14 @@ export default function ServicerNotificationsPage() {
       <PageHeader
         title="Notifications"
         description="Monitor loan activity and task assignments"
-        action={
-          unreadCount > 0 && (
-            <Button variant="outline" onClick={handleMarkAllAsRead}>
-              <CheckCircle className="mr-2 h-4 w-4" />
-              Mark all as read
-            </Button>
-          )
-        }
-      />
+      >
+        {unreadCount > 0 && (
+          <Button variant="outline" onClick={handleMarkAllAsRead}>
+            <CheckCircle className="mr-2 h-4 w-4" />
+            Mark all as read
+          </Button>
+        )}
+      </PageHeader>
 
       {/* Filters */}
       <div className="flex flex-wrap items-center gap-4">
