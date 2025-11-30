@@ -1,0 +1,272 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-jakarta);
+  --font-mono: var(--font-geist-mono);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-brand: var(--brand);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+}
+
+/* ServState Custom Color Scheme - Converted from HSL to CSS */
+:root {
+  --radius: 0.75rem;
+
+  /* Base colors - soft teal-gray background (complements primary) */
+  --background: hsl(168 8% 90%);
+  --foreground: hsl(220 20% 10%);
+
+  /* Card colors - teal-tinted off-white */
+  --card: hsl(168 15% 98%);
+  --card-foreground: hsl(220 20% 10%);
+
+  /* Popover colors - teal-tinted off-white */
+  --popover: hsl(168 15% 98%);
+  --popover-foreground: hsl(220 20% 10%);
+
+  /* Primary - Teal/green accent */
+  --primary: hsl(168 76% 36%);
+  --primary-foreground: hsl(0 0% 100%);
+
+  /* Secondary */
+  --secondary: hsl(220 14% 96%);
+  --secondary-foreground: hsl(220 20% 20%);
+
+  /* Muted */
+  --muted: hsl(220 14% 96%);
+  --muted-foreground: hsl(220 10% 46%);
+
+  /* Accent - Subtle gray for hover/focus states (shadcn convention) */
+  --accent: hsl(220 14% 96%);
+  --accent-foreground: hsl(220 20% 10%);
+
+  /* Brand - Gold/Orange accent color */
+  --brand: hsl(36 100% 50%);
+  --brand-foreground: hsl(220 20% 10%);
+
+  /* Destructive - Red */
+  --destructive: hsl(0 84% 60%);
+  --destructive-foreground: hsl(0 0% 100%);
+
+  /* Success - Green */
+  --success: hsl(142 76% 36%);
+  --success-foreground: hsl(0 0% 100%);
+
+  /* Warning - Amber */
+  --warning: hsl(38 92% 50%);
+  --warning-foreground: hsl(0 0% 100%);
+
+  /* Border and input */
+  --border: hsl(220 13% 91%);
+  --input: hsl(220 13% 91%);
+  --ring: hsl(168 76% 36%);
+
+  /* Chart colors */
+  --chart-1: hsl(168 76% 36%);
+  --chart-2: hsl(36 100% 50%);
+  --chart-3: hsl(142 76% 36%);
+  --chart-4: hsl(220 70% 50%);
+  --chart-5: hsl(0 84% 60%);
+
+  /* Sidebar - teal-tinted off-white */
+  --sidebar: hsl(168 12% 97%);
+  --sidebar-foreground: hsl(220 20% 10%);
+  --sidebar-primary: hsl(168 76% 36%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(220 14% 96%);
+  --sidebar-accent-foreground: hsl(220 20% 10%);
+  --sidebar-border: hsl(220 13% 91%);
+  --sidebar-ring: hsl(168 76% 36%);
+}
+
+.dark {
+  /* Base colors - dark background */
+  --background: hsl(220 20% 7%);
+  --foreground: hsl(220 14% 96%);
+
+  /* Card colors */
+  --card: hsl(220 20% 10%);
+  --card-foreground: hsl(220 14% 96%);
+
+  /* Popover colors */
+  --popover: hsl(220 20% 10%);
+  --popover-foreground: hsl(220 14% 96%);
+
+  /* Primary - Slightly lighter teal for dark mode */
+  --primary: hsl(168 76% 42%);
+  --primary-foreground: hsl(0 0% 100%);
+
+  /* Secondary */
+  --secondary: hsl(220 14% 15%);
+  --secondary-foreground: hsl(220 14% 90%);
+
+  /* Muted */
+  --muted: hsl(220 14% 15%);
+  --muted-foreground: hsl(220 10% 55%);
+
+  /* Accent - Subtle dark gray for hover/focus states (shadcn convention) */
+  --accent: hsl(220 14% 15%);
+  --accent-foreground: hsl(220 14% 96%);
+
+  /* Brand - Gold/Orange accent color */
+  --brand: hsl(36 100% 55%);
+  --brand-foreground: hsl(0 0% 100%);
+
+  /* Destructive */
+  --destructive: hsl(0 62% 50%);
+  --destructive-foreground: hsl(0 0% 100%);
+
+  /* Success */
+  --success: hsl(142 70% 45%);
+  --success-foreground: hsl(0 0% 100%);
+
+  /* Warning */
+  --warning: hsl(38 92% 50%);
+  --warning-foreground: hsl(0 0% 100%);
+
+  /* Border and input */
+  --border: hsl(220 13% 20%);
+  --input: hsl(220 13% 20%);
+  --ring: hsl(168 76% 42%);
+
+  /* Chart colors - adjusted for dark mode */
+  --chart-1: hsl(168 76% 42%);
+  --chart-2: hsl(36 100% 55%);
+  --chart-3: hsl(142 70% 45%);
+  --chart-4: hsl(220 70% 60%);
+  --chart-5: hsl(0 62% 55%);
+
+  /* Sidebar */
+  --sidebar: hsl(220 20% 10%);
+  --sidebar-foreground: hsl(220 14% 96%);
+  --sidebar-primary: hsl(168 76% 42%);
+  --sidebar-primary-foreground: hsl(0 0% 100%);
+  --sidebar-accent: hsl(220 14% 15%);
+  --sidebar-accent-foreground: hsl(220 14% 96%);
+  --sidebar-border: hsl(220 13% 20%);
+  --sidebar-ring: hsl(168 76% 42%);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* Custom scrollbar styles from prototype */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--muted-foreground) / 0.3);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--muted-foreground) / 0.5);
+}
+
+/* Custom utility classes from prototype */
+.glass {
+  backdrop-filter: blur(12px);
+  background: hsl(var(--card) / 0.8);
+}
+
+.gradient-border {
+  background: linear-gradient(hsl(var(--card)), hsl(var(--card))) padding-box,
+    linear-gradient(135deg, hsl(var(--primary)), hsl(var(--brand))) border-box;
+  border: 2px solid transparent;
+}
+
+/* Skeleton animation */
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 25%,
+    hsl(var(--muted-foreground) / 0.1) 50%,
+    hsl(var(--muted)) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* Stagger animations for list items */
+.animate-in {
+  animation: fade-up 0.4s ease-out both;
+}
+
+@keyframes fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.stagger-1 { animation-delay: 0.05s; }
+.stagger-2 { animation-delay: 0.1s; }
+.stagger-3 { animation-delay: 0.15s; }
+.stagger-4 { animation-delay: 0.2s; }
