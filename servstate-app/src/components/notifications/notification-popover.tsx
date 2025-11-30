@@ -34,7 +34,7 @@ import {
   formatNotificationTime,
 } from '@/data/notifications';
 import { Notification, NotificationType } from '@/types/notification';
-import { ViewMode } from '@/context/view-mode-context';
+import type { ViewMode } from '@/types';
 
 interface NotificationPopoverProps {
   viewMode: ViewMode;
