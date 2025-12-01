@@ -7,16 +7,46 @@ import { PageHeader } from '@/components/shared/page-header';
 import { StatCard } from '@/components/shared/stat-card';
 import { LoanSummaryCard } from '@/components/borrower/loan-summary-card';
 import { PaymentBreakdownChart } from '@/components/charts/payment-breakdown-chart';
-import { mockLoans, getTransactionsByLoanId } from '@/data';
+import { Skeleton } from '@/components/ui/skeleton';
+import { useLoans } from '@/hooks/use-loans';
+import { useTransactions } from '@/hooks/use-transactions';
 import { formatCurrency, formatDate } from '@/lib/format';
 
 export default function BorrowerDashboardPage() {
-  // Get the first loan for the borrower view
-  const loan = mockLoans[0];
-  const transactions = getTransactionsByLoanId(loan.id);
-  const recentTransactions = transactions.slice(0, 3);
+  // Fetch loans - borrowers will only see their own loan
+  const { data: loans, isLoading: loansLoading, error: loansError } = useLoans();
+  const loan = loans?.[0];
+  
+  // Fetch transactions for the loan
+  const { data: transactions, isLoading: transactionsLoading } = useTransactions(loan?.id || '');
+  const recentTransactions = transactions?.slice(0, 3) || [];
 
-  const monthlyPayment = loan.monthly_pi + loan.monthly_escrow;
+  const monthlyPayment = loan ? loan.monthly_pi + loan.monthly_escrow : 0;
+
+  if (loansLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-24 w-full" />
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+          {[...Array(4)].map((_, i) => (
+            <Skeleton key={i} className="h-32 w-full" />
+          ))}
+        </div>
+        <Skeleton className="h-96 w-full" />
+      </div>
+    );
+  }
+
+  if (loansError || !loan) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-2">Unable to load loan data</h2>
+          <p className="text-muted-foreground">Please try refreshing the page</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">

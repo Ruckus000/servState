@@ -8,23 +8,50 @@ import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { ScrollArea } from '@/components/ui/scroll-area';
+import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/shared/page-header';
 import { EmptyState } from '@/components/shared/empty-state';
-import { mockLoans, getMessagesByLoanId } from '@/data';
+import { useLoans } from '@/hooks/use-loans';
+import { useMessages, useSendMessage } from '@/hooks/use-messages';
 import { formatDateTime } from '@/lib/format';
 import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 
 export default function BorrowerMessagesPage() {
   const [newMessage, setNewMessage] = useState('');
-  const loan = mockLoans[0];
-  const messages = getMessagesByLoanId(loan.id);
+  const [subject, setSubject] = useState('');
+  
+  const { data: loans } = useLoans();
+  const loan = loans?.[0];
+  
+  const { data: messages, isLoading } = useMessages(loan?.id || '');
+  const sendMessage = useSendMessage();
 
-  const handleSendMessage = () => {
-    if (!newMessage.trim()) return;
-    // In a real app, this would send the message to the backend
-    console.log('Sending message:', newMessage);
-    setNewMessage('');
+  const handleSendMessage = async () => {
+    if (!newMessage.trim() || !loan) return;
+    
+    try {
+      await sendMessage.mutateAsync({
+        loan_id: loan.id,
+        subject: subject || 'Message from borrower',
+        content: newMessage,
+      });
+      setNewMessage('');
+      setSubject('');
+      toast.success('Message sent successfully');
+    } catch (error) {
+      toast.error('Failed to send message');
+    }
   };
+  
+  if (isLoading || !loan) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-96 w-full" />
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -46,7 +73,7 @@ export default function BorrowerMessagesPage() {
               </div>
             </CardHeader>
             <CardContent className="flex-1 flex flex-col p-0">
-              {messages.length === 0 ? (
+              {!messages || messages.length === 0 ? (
                 <div className="flex-1 flex items-center justify-center p-6">
                   <EmptyState
                     icon={MessageCircle}
@@ -57,38 +84,39 @@ export default function BorrowerMessagesPage() {
               ) : (
                 <ScrollArea className="flex-1 p-4">
                   <div className="space-y-4">
-                    {messages.map((message) => (
+                    {messages?.map((message) => (
                       <div
                         key={message.id}
                         className={cn(
                           'flex gap-3',
-                          message.from === 'borrower' && 'flex-row-reverse'
+                          message.sender === 'borrower' && 'flex-row-reverse'
                         )}
                       >
                         <Avatar className="h-8 w-8 shrink-0">
                           <AvatarFallback
                             className={cn(
-                              message.from === 'borrower'
+                              message.sender === 'borrower'
                                 ? 'bg-primary text-primary-foreground'
                                 : 'bg-muted'
                             )}
                           >
-                            {message.from === 'borrower' ? 'JA' : 'SS'}
+                            {message.sender === 'borrower' ? 'ME' : 'SS'}
                           </AvatarFallback>
                         </Avatar>
                         <div
                           className={cn(
                             'max-w-[80%] rounded-lg p-3',
-                            message.from === 'borrower'
+                            message.sender === 'borrower'
                               ? 'bg-primary text-primary-foreground'
                               : 'bg-muted'
                           )}
                         >
-                          <p className="text-sm">{message.content}</p>
+                          <p className="text-sm font-medium">{message.subject}</p>
+                          <p className="text-sm mt-1">{message.content}</p>
                           <p
                             className={cn(
                               'mt-1 text-xs',
-                              message.from === 'borrower'
+                              message.sender === 'borrower'
                                 ? 'text-primary-foreground/70'
                                 : 'text-muted-foreground'
                             )}
@@ -120,7 +148,7 @@ export default function BorrowerMessagesPage() {
                   <Button
                     className="h-auto"
                     onClick={handleSendMessage}
-                    disabled={!newMessage.trim()}
+                    disabled={!newMessage.trim() || sendMessage.isPending}
                   >
                     <Send className="h-4 w-4" />
                   </Button>

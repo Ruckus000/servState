@@ -1,38 +1,46 @@
 'use client';
 
+import { useState } from 'react';
 import Link from 'next/link';
 import { Building2, Lock, Mail } from 'lucide-react';
+import { signIn } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-
-/**
- * TODO: Authentication Implementation
- *
- * This is a placeholder login page. When implementing authentication:
- *
- * 1. Install Supabase Auth helpers:
- *    npm install @supabase/supabase-js @supabase/auth-helpers-nextjs
- *
- * 2. Create Supabase client in lib/supabase.ts
- *
- * 3. Implement authentication flow:
- *    - Email/password sign in
- *    - Magic link authentication
- *    - OAuth providers (Google, etc.)
- *
- * 4. Add protected route middleware
- *
- * 5. Implement Row Level Security policies in Supabase
- */
+import { toast } from 'sonner';
 
 export default function LoginPage() {
-  const handleLogin = (e: React.FormEvent) => {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(false);
+  const [email, setEmail] = useState('j.anderson@example.com');
+  const [password, setPassword] = useState('password123');
+
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    // TODO: Implement actual authentication
-    // For now, redirect to borrower dashboard
-    window.location.href = '/borrower';
+    setIsLoading(true);
+
+    try {
+      const result = await signIn('credentials', {
+        email,
+        password,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        toast.error('Invalid email or password');
+        setIsLoading(false);
+        return;
+      }
+
+      // Redirect based on user role (will be handled by middleware)
+      router.push('/borrower');
+      router.refresh();
+    } catch (error) {
+      toast.error('An error occurred. Please try again.');
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -60,7 +68,9 @@ export default function LoginPage() {
                   type="email"
                   placeholder="you@example.com"
                   className="pl-10"
-                  defaultValue="j.anderson@example.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
                 />
               </div>
             </div>
@@ -73,19 +83,22 @@ export default function LoginPage() {
                   type="password"
                   placeholder="Enter your password"
                   className="pl-10"
-                  defaultValue="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
                 />
               </div>
             </div>
-            <Button type="submit" className="w-full">
-              Sign In
+            <Button type="submit" className="w-full" disabled={isLoading}>
+              {isLoading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
 
           <div className="mt-6 p-4 rounded-lg bg-muted">
             <p className="text-sm text-muted-foreground text-center">
-              <strong>Demo Mode:</strong> Authentication is not yet implemented.
-              Click Sign In to access the dashboard.
+              <strong>Demo Accounts:</strong><br />
+              Borrower: j.anderson@example.com / password123<br />
+              Servicer: admin@servstate.com / password123
             </p>
           </div>
 

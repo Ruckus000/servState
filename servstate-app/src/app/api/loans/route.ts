@@ -1,32 +1,62 @@
-import { NextResponse } from 'next/server';
+import { NextRequest } from 'next/server';
+import { auth } from '@/lib/auth';
+import { sql } from '@/lib/db';
+import { errorResponse, successResponse } from '@/lib/api-helpers';
 
 /**
- * TODO: Implement Loans API
- *
- * This will connect to Supabase to manage loan data.
- *
- * Endpoints to implement:
- * - GET /api/loans - List all loans (with pagination, filtering)
- * - GET /api/loans/:id - Get single loan details
- * - PUT /api/loans/:id - Update loan information
- *
- * Security:
- * - Implement Row Level Security in Supabase
- * - Borrowers can only access their own loans
- * - Servicers can access all loans in their portfolio
+ * GET /api/loans
+ * List loans with role-based filtering
+ * - Borrowers see only their loan
+ * - Servicers see all loans
  */
+export async function GET(request: NextRequest) {
+  try {
+    const session = await auth();
+    if (!session) {
+      return errorResponse('Unauthorized', 401);
+    }
 
-export async function GET() {
-  // TODO: Replace with Supabase query
-  return NextResponse.json({
-    message: 'Loans API - Not yet implemented',
-    hint: 'See src/app/api/README.md for implementation guide',
-  });
-}
+    const { searchParams } = new URL(request.url);
+    const status = searchParams.get('status');
 
-export async function POST() {
-  return NextResponse.json(
-    { error: 'Not implemented' },
-    { status: 501 }
-  );
+    const { user } = session;
+
+    let loans;
+    
+    if (user.role === 'borrower') {
+      // Borrowers can only see their own loan
+      if (status) {
+        loans = await sql`
+          SELECT * FROM loans 
+          WHERE borrower_id = ${user.id} AND status = ${status}
+          ORDER BY created_at DESC
+        `;
+      } else {
+        loans = await sql`
+          SELECT * FROM loans 
+          WHERE borrower_id = ${user.id}
+          ORDER BY created_at DESC
+        `;
+      }
+    } else {
+      // Servicers and admins see all loans
+      if (status) {
+        loans = await sql`
+          SELECT * FROM loans 
+          WHERE status = ${status}
+          ORDER BY created_at DESC
+        `;
+      } else {
+        loans = await sql`
+          SELECT * FROM loans 
+          ORDER BY created_at DESC
+        `;
+      }
+    }
+
+    return successResponse(loans);
+  } catch (error) {
+    console.error('Error fetching loans:', error);
+    return errorResponse('Failed to fetch loans', 500);
+  }
 }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Search, Filter, Eye } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -14,9 +14,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { Skeleton } from '@/components/ui/skeleton';
 import { PageHeader } from '@/components/shared/page-header';
 import { DataTable, type Column } from '@/components/shared/data-table';
-import { mockLoans } from '@/data';
+import { useLoans } from '@/hooks/use-loans';
 import { formatCurrency, formatPercent, formatDate } from '@/lib/format';
 import type { Loan } from '@/types';
 
@@ -25,14 +26,40 @@ export default function ServicerLoansPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<string>('all');
 
-  const filteredLoans = mockLoans.filter((loan) => {
-    const matchesSearch =
-      loan.borrower_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      loan.loan_number.includes(searchTerm) ||
-      loan.address.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesStatus = statusFilter === 'all' || loan.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const { data: loans, isLoading, error } = useLoans();
+
+  const filteredLoans = useMemo(() => {
+    if (!loans) return [];
+    
+    return loans.filter((loan) => {
+      const matchesSearch =
+        loan.borrower_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        loan.loan_number.includes(searchTerm) ||
+        loan.address.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesStatus = statusFilter === 'all' || loan.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    });
+  }, [loans, searchTerm, statusFilter]);
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-24 w-full" />
+        <Skeleton className="h-96 w-full" />
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold mb-2">Unable to load loans</h2>
+          <p className="text-muted-foreground">Please try refreshing the page</p>
+        </div>
+      </div>
+    );
+  }
 
   const columns: Column<Loan>[] = [
     {
@@ -114,7 +141,7 @@ export default function ServicerLoansPage() {
     <div className="space-y-6">
       <PageHeader
         title="Loans"
-        description={`Managing ${mockLoans.length} loans in portfolio`}
+        description={`Managing ${loans?.length || 0} loans in portfolio`}
       />
 
       {/* Filters */}
