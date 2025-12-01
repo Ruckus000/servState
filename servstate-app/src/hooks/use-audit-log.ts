@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import type { AuditLog } from '@/types';
+import type { AuditLogEntry } from '@/types';
 
-async function fetchAuditLog(loanId?: string): Promise<AuditLog[]> {
+async function fetchAuditLog(loanId?: string): Promise<AuditLogEntry[]> {
   const params = loanId ? `?loanId=${loanId}` : '';
   const response = await fetch(`/api/audit-log${params}`);
   if (!response.ok) throw new Error('Failed to fetch audit log');

@@ -8,6 +8,9 @@ export * from './correspondence';
 export * from './modification';
 export * from './note';
 export * from './user';
+export * from './notification';
+export * from './audit-log';
+export * from './payment-method';
 
 // Common utility types
 export type ViewMode = 'borrower' | 'servicer';
