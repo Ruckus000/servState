@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { sql, query } from '@/lib/db';
 import { errorResponse, successResponse, validateLoanAccess, createAuditLogEntry } from '@/lib/api-helpers';
 import { loanUpdateSchema } from '@/lib/schemas';
+import type { Loan } from '@/types/loan';
 
 /**
  * GET /api/loans/[id]
@@ -121,7 +122,7 @@ export async function PUT(
 
     // Execute update (using raw query due to dynamic fields)
     const queryText = `UPDATE loans SET ${updateFields.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
-    const result = await query(queryText, values);
+    const result = await query<Loan>(queryText, values);
 
     const updatedLoan = result[0];
 
