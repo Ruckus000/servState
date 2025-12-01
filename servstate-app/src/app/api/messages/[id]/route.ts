@@ -9,7 +9,7 @@ import { errorResponse, successResponse } from '@/lib/api-helpers';
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -17,7 +17,7 @@ export async function PATCH(
       return errorResponse('Unauthorized', 401);
     }
 
-    const messageId = params.id;
+    const { id: messageId } = await params;
 
     const result = await sql`
       UPDATE messages 

@@ -9,7 +9,7 @@ import { errorResponse, validateLoanAccess } from '@/lib/api-helpers';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -17,7 +17,7 @@ export async function GET(
       return errorResponse('Unauthorized', 401);
     }
 
-    const documentId = params.id;
+    const { id: documentId } = await params;
     const { user } = session;
 
     // Get document

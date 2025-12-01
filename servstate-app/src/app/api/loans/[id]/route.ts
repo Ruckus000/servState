@@ -10,7 +10,7 @@ import { loanUpdateSchema } from '@/lib/schemas';
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -18,7 +18,7 @@ export async function GET(
       return errorResponse('Unauthorized', 401);
     }
 
-    const loanId = params.id;
+    const { id: loanId } = await params;
     const { user } = session;
 
     // Check access
@@ -48,7 +48,7 @@ export async function GET(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -63,7 +63,7 @@ export async function PUT(
       return errorResponse('Forbidden', 403);
     }
 
-    const loanId = params.id;
+    const { id: loanId } = await params;
     const body = await request.json();
 
     // Validate input

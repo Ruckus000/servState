@@ -10,7 +10,7 @@ import { taskUpdateSchema } from '@/lib/schemas';
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const session = await auth();
@@ -25,7 +25,7 @@ export async function PUT(
       return errorResponse('Forbidden', 403);
     }
 
-    const taskId = params.id;
+    const { id: taskId } = await params;
     const body = await request.json();
 
     // Validate input
