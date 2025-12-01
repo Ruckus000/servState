@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
-import { sql } from '@/lib/db';
+import { sql, query } from '@/lib/db';
 import { errorResponse, successResponse, createAuditLogEntry } from '@/lib/api-helpers';
 import { taskUpdateSchema } from '@/lib/schemas';
 
@@ -62,7 +62,7 @@ export async function PUT(
     values.push(taskId);
 
     const queryText = `UPDATE tasks SET ${setParts.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
-    const result = await sql(queryText, values);
+    const result = await query(queryText, values);
 
     if (result.length === 0) {
       return errorResponse('Task not found', 404);

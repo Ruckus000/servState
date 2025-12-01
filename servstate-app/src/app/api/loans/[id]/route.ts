@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
-import { sql } from '@/lib/db';
+import { sql, query } from '@/lib/db';
 import { errorResponse, successResponse, validateLoanAccess, createAuditLogEntry } from '@/lib/api-helpers';
 import { loanUpdateSchema } from '@/lib/schemas';
 
@@ -121,7 +121,7 @@ export async function PUT(
 
     // Execute update (using raw query due to dynamic fields)
     const queryText = `UPDATE loans SET ${updateFields.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
-    const result = await sql(queryText, values);
+    const result = await query(queryText, values);
 
     const updatedLoan = result[0];
 
