@@ -1,13 +1,14 @@
 import NextAuth from 'next-auth';
-import CredentialsProvider from 'next-auth/providers/credentials';
+import Credentials from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { sql } from './db';
-import type { User, UserRole } from '@/types';
+import type { UserRole } from '@/types';
+import { authConfig } from './auth.config';
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
+  ...authConfig,
   providers: [
-    CredentialsProvider({
-      name: 'Credentials',
+    Credentials({
       credentials: {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
@@ -20,8 +21,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         try {
           // Query the users table
           const users = await sql`
-            SELECT id, email, name, role, avatar, password_hash 
-            FROM users 
+            SELECT id, email, name, role, avatar, password_hash
+            FROM users
             WHERE email = ${credentials.email as string}
           `;
 
@@ -56,29 +57,5 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       },
     }),
   ],
-  callbacks: {
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.role = user.role;
-        token.avatar = user.avatar;
-      }
-      return token;
-    },
-    async session({ session, token }) {
-      if (session.user) {
-        session.user.id = token.id as string;
-        session.user.role = token.role as UserRole;
-        session.user.avatar = token.avatar as string | undefined;
-      }
-      return session;
-    },
-  },
-  pages: {
-    signIn: '/login',
-  },
-  session: {
-    strategy: 'jwt',
-  },
 });
 
