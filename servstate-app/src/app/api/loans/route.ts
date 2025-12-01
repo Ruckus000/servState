@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import { errorResponse, successResponse } from '@/lib/api-helpers';
+import { normalizeLoan } from '@/lib/normalize';
 
 /**
  * GET /api/loans
@@ -54,7 +55,9 @@ export async function GET(request: NextRequest) {
       }
     }
 
-    return successResponse(loans);
+    // Normalize numeric fields (PostgreSQL NUMERIC comes as strings)
+    const normalizedLoans = loans.map(loan => normalizeLoan(loan as Record<string, unknown>));
+    return successResponse(normalizedLoans);
   } catch (error) {
     console.error('Error fetching loans:', error);
     return errorResponse('Failed to fetch loans', 500);

@@ -3,6 +3,7 @@ import { auth } from '@/lib/auth';
 import { sql, query } from '@/lib/db';
 import { errorResponse, successResponse, validateLoanAccess, createAuditLogEntry } from '@/lib/api-helpers';
 import { loanUpdateSchema } from '@/lib/schemas';
+import { normalizeLoan } from '@/lib/normalize';
 import type { Loan } from '@/types/loan';
 
 /**
@@ -36,7 +37,8 @@ export async function GET(
       return errorResponse('Loan not found', 404);
     }
 
-    return successResponse(loans[0]);
+    // Normalize numeric fields (PostgreSQL NUMERIC comes as strings)
+    return successResponse(normalizeLoan(loans[0] as Record<string, unknown>));
   } catch (error) {
     console.error('Error fetching loan:', error);
     return errorResponse('Failed to fetch loan', 500);
@@ -124,7 +126,8 @@ export async function PUT(
     const queryText = `UPDATE loans SET ${updateFields.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
     const result = await query<Loan>(queryText, values);
 
-    const updatedLoan = result[0];
+    // Normalize numeric fields (PostgreSQL NUMERIC comes as strings)
+    const updatedLoan = normalizeLoan(result[0] as unknown as Record<string, unknown>);
 
     // Create audit log entry
     await createAuditLogEntry({
