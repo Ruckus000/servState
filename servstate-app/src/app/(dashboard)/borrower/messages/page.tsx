@@ -89,24 +89,24 @@ export default function BorrowerMessagesPage() {
                         key={message.id}
                         className={cn(
                           'flex gap-3',
-                          message.sender === 'borrower' && 'flex-row-reverse'
+                          message.from === 'borrower' && 'flex-row-reverse'
                         )}
                       >
                         <Avatar className="h-8 w-8 shrink-0">
                           <AvatarFallback
                             className={cn(
-                              message.sender === 'borrower'
+                              message.from === 'borrower'
                                 ? 'bg-primary text-primary-foreground'
                                 : 'bg-muted'
                             )}
                           >
-                            {message.sender === 'borrower' ? 'ME' : 'SS'}
+                            {message.from === 'borrower' ? 'ME' : 'SS'}
                           </AvatarFallback>
                         </Avatar>
                         <div
                           className={cn(
                             'max-w-[80%] rounded-lg p-3',
-                            message.sender === 'borrower'
+                            message.from === 'borrower'
                               ? 'bg-primary text-primary-foreground'
                               : 'bg-muted'
                           )}
@@ -116,7 +116,7 @@ export default function BorrowerMessagesPage() {
                           <p
                             className={cn(
                               'mt-1 text-xs',
-                              message.sender === 'borrower'
+                              message.from === 'borrower'
                                 ? 'text-primary-foreground/70'
                                 : 'text-muted-foreground'
                             )}
