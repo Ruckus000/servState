@@ -121,7 +121,7 @@ export async function PUT(
 
     // Execute update (using raw query due to dynamic fields)
     const queryText = `UPDATE loans SET ${updateFields.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
-    const result = await sql.unsafe(queryText, values);
+    const result = await sql(queryText, values);
 
     const updatedLoan = result[0];
 

@@ -62,7 +62,7 @@ export async function PUT(
     values.push(taskId);
 
     const queryText = `UPDATE tasks SET ${setParts.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
-    const result = await sql.unsafe(queryText, values);
+    const result = await sql(queryText, values);
 
     if (result.length === 0) {
       return errorResponse('Task not found', 404);
