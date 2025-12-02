@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Phone, Mail, MapPin, Calendar, DollarSign, Percent, CreditCard, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -23,7 +23,7 @@ import { useMessages } from '@/hooks/use-messages';
 import { useTasks } from '@/hooks/use-tasks';
 import { useAuditLog } from '@/hooks/use-audit-log';
 import { formatCurrency, formatPercent, formatDate, formatDateTime, formatPhone, formatDuration } from '@/lib/format';
-import type { Transaction, Document, Note, Correspondence, Modification, Task } from '@/types';
+import type { Transaction, Document, Note, Message, Correspondence, Modification, Task } from '@/types';
 
 export default function LoanDetailPage() {
   const params = useParams();
@@ -32,36 +32,14 @@ export default function LoanDetailPage() {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
 
-  // Fetch all data via hooks
+  // Fetch all data via hooks (server-side filtered by loanId)
   const { data: loan, isLoading: loanLoading, error: loanError } = useLoan(loanId);
-  const { data: allTransactions = [], isLoading: transactionsLoading } = useTransactions();
+  const { data: transactions = [], isLoading: transactionsLoading } = useTransactions(loanId);
   const { data: documents = [], isLoading: documentsLoading } = useDocuments(loanId);
-  const { data: allNotes = [], isLoading: notesLoading } = useNotes();
-  const { data: allMessages = [], isLoading: messagesLoading } = useMessages();
-  const { data: allTasks = [], isLoading: tasksLoading } = useTasks();
-  const { data: allAuditLog = [], isLoading: auditLoading } = useAuditLog();
-
-  // Filter data by loan ID (client-side)
-  const transactions = useMemo(
-    () => allTransactions.filter(t => t.loan_id === loanId),
-    [allTransactions, loanId]
-  );
-  const notes = useMemo(
-    () => allNotes.filter(n => n.loan_id === loanId),
-    [allNotes, loanId]
-  );
-  const correspondence = useMemo(
-    () => allMessages.filter(m => m.loan_id === loanId),
-    [allMessages, loanId]
-  );
-  const tasks = useMemo(
-    () => allTasks.filter(t => t.loan_id === loanId),
-    [allTasks, loanId]
-  );
-  const auditLog = useMemo(
-    () => allAuditLog.filter(a => a.loan_id === loanId),
-    [allAuditLog, loanId]
-  );
+  const { data: notes = [], isLoading: notesLoading } = useNotes(loanId);
+  const { data: messages = [], isLoading: messagesLoading } = useMessages(loanId);
+  const { data: tasks = [], isLoading: tasksLoading } = useTasks(loanId);
+  const { data: auditLog = [], isLoading: auditLoading } = useAuditLog(loanId);
 
   // Loading state
   if (loanLoading) {
@@ -182,7 +160,7 @@ export default function LoanDetailPage() {
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="history">History ({transactions.length})</TabsTrigger>
-          <TabsTrigger value="correspondence">Correspondence ({correspondence.length})</TabsTrigger>
+          <TabsTrigger value="correspondence">Correspondence ({messages.length})</TabsTrigger>
           <TabsTrigger value="documents">Documents ({documents.length})</TabsTrigger>
           <TabsTrigger value="notes">Notes ({notes.length})</TabsTrigger>
           <TabsTrigger value="tasks">Tasks ({tasks.length})</TabsTrigger>
@@ -289,36 +267,30 @@ export default function LoanDetailPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {correspondence.map((c) => (
+                {messages.map((msg) => (
                   <div
-                    key={c.id}
+                    key={msg.id}
                     className="rounded-lg border p-4"
                   >
                     <div className="flex items-center justify-between mb-2">
                       <div className="flex items-center gap-2">
-                        <Badge variant="outline">{c.type}</Badge>
-                        <Badge variant={c.direction === 'inbound' ? 'secondary' : 'default'}>
-                          {c.direction}
+                        <Badge variant={msg.from === 'borrower' ? 'secondary' : 'default'}>
+                          {msg.from === 'borrower' ? 'From Borrower' : 'From Servicer'}
                         </Badge>
+                        {msg.status && (
+                          <Badge variant="outline">{msg.status}</Badge>
+                        )}
                       </div>
-                      <span className="text-sm text-muted-foreground">{formatDateTime(c.date)}</span>
+                      <span className="text-sm text-muted-foreground">{formatDateTime(msg.date)}</span>
                     </div>
-                    {c.type === 'email' && 'subject' in c && (
-                      <p className="font-medium">{c.subject}</p>
+                    {msg.subject && (
+                      <p className="font-medium mb-2">{msg.subject}</p>
                     )}
-                    {c.type === 'call' && 'outcome' in c && (
-                      <p className="text-sm">
-                        <span className="font-medium">Outcome:</span> {c.outcome}
-                        {'duration' in c && c.duration > 0 && ` (${formatDuration(c.duration)})`}
-                      </p>
-                    )}
-                    {c.type === 'call' && 'notes' in c && (
-                      <p className="text-sm text-muted-foreground mt-1">{c.notes}</p>
-                    )}
+                    <p className="text-sm text-muted-foreground">{msg.content}</p>
                   </div>
                 ))}
-                {correspondence.length === 0 && (
-                  <p className="text-center text-muted-foreground py-8">No correspondence</p>
+                {messages.length === 0 && (
+                  <p className="text-center text-muted-foreground py-8">No messages</p>
                 )}
               </div>
             </CardContent>

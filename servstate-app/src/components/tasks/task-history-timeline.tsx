@@ -81,7 +81,7 @@ export function TaskHistoryTimeline({ taskId }: TaskHistoryTimelineProps) {
                     {/* Additional details */}
                     {entry.details && entry.action_type === 'task_status_changed' && (
                       <div className="mt-1 text-xs text-muted-foreground">
-                        {entry.details.old_status} → {entry.details.new_status}
+                        {String(entry.details.old_status)} → {String(entry.details.new_status)}
                       </div>
                     )}
                   </div>
