@@ -37,11 +37,30 @@ export async function PUT(
 
     const updates = validation.data;
 
+    // Fetch old task data to track changes
+    const oldTaskResult = await sql`SELECT * FROM tasks WHERE id = ${taskId}`;
+    if (oldTaskResult.length === 0) {
+      return errorResponse('Task not found', 404);
+    }
+    const oldTask = oldTaskResult[0] as Task;
+
     // Build update query
     const setParts: string[] = [];
     const values: any[] = [];
     let paramIndex = 1;
 
+    if (updates.title !== undefined) {
+      setParts.push(`title = $${paramIndex++}`);
+      values.push(updates.title);
+    }
+    if (updates.description !== undefined) {
+      setParts.push(`description = $${paramIndex++}`);
+      values.push(updates.description);
+    }
+    if (updates.priority !== undefined) {
+      setParts.push(`priority = $${paramIndex++}`);
+      values.push(updates.priority);
+    }
     if (updates.status !== undefined) {
       setParts.push(`status = $${paramIndex++}`);
       values.push(updates.status);
@@ -54,6 +73,14 @@ export async function PUT(
       setParts.push(`due_date = $${paramIndex++}`);
       values.push(updates.due_date);
     }
+    if (updates.type !== undefined) {
+      setParts.push(`type = $${paramIndex++}`);
+      values.push(updates.type);
+    }
+    if (updates.category !== undefined) {
+      setParts.push(`category = $${paramIndex++}`);
+      values.push(updates.category);
+    }
 
     if (setParts.length === 0) {
       return errorResponse('No fields to update', 400);
@@ -65,24 +92,61 @@ export async function PUT(
     const queryText = `UPDATE tasks SET ${setParts.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
     const result = await query<Task>(queryText, values);
 
-    if (result.length === 0) {
-      return errorResponse('Task not found', 404);
-    }
-
     const task = result[0];
 
-    // Create audit log entry
-    await createAuditLogEntry({
-      loanId: task.loan_id,
-      actionType: 'task_updated',
-      category: 'workflow',
-      description: `Task updated: ${task.title}`,
-      performedBy: user.name,
-      details: {
-        task_id: taskId,
-        changes: updates,
-      },
-    });
+    // Create audit log entry for status changes
+    if (updates.status !== undefined && oldTask.status !== updates.status) {
+      await createAuditLogEntry({
+        loanId: task.loan_id,
+        actionType: 'task_status_changed',
+        category: 'internal',
+        description: `Task status changed: ${oldTask.status} → ${updates.status}`,
+        performedBy: user.name,
+        details: {
+          task_id: taskId,
+          old_status: oldTask.status,
+          new_status: updates.status,
+          changed_by: user.name,
+        },
+        referenceId: taskId,
+      });
+    }
+
+    // Create audit log entry for assignment changes
+    if (updates.assigned_to !== undefined && oldTask.assigned_to !== updates.assigned_to) {
+      await createAuditLogEntry({
+        loanId: task.loan_id,
+        actionType: 'task_assigned',
+        category: 'internal',
+        description: `Task assigned to: ${updates.assigned_to || 'Unassigned'}`,
+        performedBy: user.name,
+        details: {
+          task_id: taskId,
+          old_assigned_to: oldTask.assigned_to,
+          new_assigned_to: updates.assigned_to,
+        },
+        referenceId: taskId,
+      });
+    }
+
+    // Create general audit log entry for other updates
+    const otherUpdates = Object.keys(updates).filter(
+      key => key !== 'status' && key !== 'assigned_to'
+    );
+    if (otherUpdates.length > 0) {
+      await createAuditLogEntry({
+        loanId: task.loan_id,
+        actionType: 'task_updated',
+        category: 'internal',
+        description: `Task updated: ${task.title}`,
+        performedBy: user.name,
+        details: {
+          task_id: taskId,
+          changes: updates,
+        },
+        referenceId: taskId,
+      });
+    }
 
     return successResponse(task);
   } catch (error) {

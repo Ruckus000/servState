@@ -60,6 +60,9 @@ export type AuditActionType =
   | 'note_added'
   | 'task_created'
   | 'task_completed'
+  | 'task_status_changed'
+  | 'task_assigned'
+  | 'task_updated'
   | 'status_change';
 
 export type AuditActionCategory =
@@ -141,6 +144,9 @@ export function getActionCategory(actionType: AuditActionType): AuditActionCateg
     note_added: 'internal',
     task_created: 'internal',
     task_completed: 'internal',
+    task_status_changed: 'internal',
+    task_assigned: 'internal',
+    task_updated: 'internal',
     status_change: 'internal',
   };
   return categoryMap[actionType];
@@ -199,6 +205,9 @@ export const actionTypeLabels: Record<AuditActionType, string> = {
   note_added: 'Note Added',
   task_created: 'Task Created',
   task_completed: 'Task Completed',
+  task_status_changed: 'Task Status Changed',
+  task_assigned: 'Task Assigned',
+  task_updated: 'Task Updated',
   status_change: 'Status Change',
 };
 

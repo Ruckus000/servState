@@ -83,15 +83,19 @@ export async function POST(request: NextRequest) {
         priority,
         status,
         assigned_to,
-        due_date
+        due_date,
+        type,
+        category
       ) VALUES (
         ${data.loan_id},
         ${data.title},
         ${data.description || null},
         ${data.priority},
-        'pending',
+        ${data.status || 'pending'},
         ${data.assigned_to || null},
-        ${data.due_date || null}
+        ${data.due_date || null},
+        ${data.type},
+        ${data.category}
       )
       RETURNING *
     `;
@@ -102,13 +106,16 @@ export async function POST(request: NextRequest) {
     await createAuditLogEntry({
       loanId: data.loan_id,
       actionType: 'task_created',
-      category: 'workflow',
+      category: 'internal',
       description: `Task created: ${data.title}`,
       performedBy: user.name,
       details: {
         task_id: task.id,
         priority: data.priority,
+        type: data.type,
+        category: data.category,
       },
+      referenceId: task.id,
     });
 
     return successResponse(task, 201);
