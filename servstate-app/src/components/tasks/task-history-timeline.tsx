@@ -1,5 +1,5 @@
 import { useTaskHistory } from '@/hooks/use-tasks';
-import { formatDate } from '@/lib/utils';
+import { formatDate } from '@/lib/format';
 import { actionTypeLabels } from '@/types/audit-log';
 import { Loader2, CheckCircle, UserPlus, FileEdit, Plus, Circle } from 'lucide-react';
 import { cn } from '@/lib/utils';
