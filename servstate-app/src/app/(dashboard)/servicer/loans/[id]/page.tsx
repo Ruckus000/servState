@@ -1,8 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Phone, Mail, MapPin, Calendar, DollarSign, Percent, CreditCard } from 'lucide-react';
+import { ArrowLeft, Phone, Mail, MapPin, Calendar, DollarSign, Percent, CreditCard, Loader2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -15,16 +15,13 @@ import { PaymentDialog } from '@/components/payments/payment-dialog';
 import { AuditLogTable } from '@/components/audit/audit-log-table';
 import { DocumentUploadZone } from '@/components/documents/DocumentUploadZone';
 import { DocumentList } from '@/components/documents/DocumentList';
+import { useLoan } from '@/hooks/use-loans';
+import { useTransactions } from '@/hooks/use-transactions';
 import { useDocuments } from '@/hooks/use-documents';
-import {
-  getLoanById,
-  getTransactionsByLoanId,
-  getNotesByLoanId,
-  getCorrespondenceByLoanId,
-  getModificationsByLoanId,
-  getTasksByLoanId,
-  getAuditLogByLoanId,
-} from '@/data';
+import { useNotes } from '@/hooks/use-notes';
+import { useMessages } from '@/hooks/use-messages';
+import { useTasks } from '@/hooks/use-tasks';
+import { useAuditLog } from '@/hooks/use-audit-log';
 import { formatCurrency, formatPercent, formatDate, formatDateTime, formatPhone, formatDuration } from '@/lib/format';
 import type { Transaction, Document, Note, Correspondence, Modification, Task } from '@/types';
 
@@ -35,16 +32,48 @@ export default function LoanDetailPage() {
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
 
-  const loan = getLoanById(loanId);
-  const transactions = getTransactionsByLoanId(loanId);
+  // Fetch all data via hooks
+  const { data: loan, isLoading: loanLoading, error: loanError } = useLoan(loanId);
+  const { data: allTransactions = [], isLoading: transactionsLoading } = useTransactions();
   const { data: documents = [], isLoading: documentsLoading } = useDocuments(loanId);
-  const notes = getNotesByLoanId(loanId);
-  const correspondence = getCorrespondenceByLoanId(loanId);
-  const modifications = getModificationsByLoanId(loanId);
-  const tasks = getTasksByLoanId(loanId);
-  const auditLog = getAuditLogByLoanId(loanId);
+  const { data: allNotes = [], isLoading: notesLoading } = useNotes();
+  const { data: allMessages = [], isLoading: messagesLoading } = useMessages();
+  const { data: allTasks = [], isLoading: tasksLoading } = useTasks();
+  const { data: allAuditLog = [], isLoading: auditLoading } = useAuditLog();
 
-  if (!loan) {
+  // Filter data by loan ID (client-side)
+  const transactions = useMemo(
+    () => allTransactions.filter(t => t.loan_id === loanId),
+    [allTransactions, loanId]
+  );
+  const notes = useMemo(
+    () => allNotes.filter(n => n.loan_id === loanId),
+    [allNotes, loanId]
+  );
+  const correspondence = useMemo(
+    () => allMessages.filter(m => m.loan_id === loanId),
+    [allMessages, loanId]
+  );
+  const tasks = useMemo(
+    () => allTasks.filter(t => t.loan_id === loanId),
+    [allTasks, loanId]
+  );
+  const auditLog = useMemo(
+    () => allAuditLog.filter(a => a.loan_id === loanId),
+    [allAuditLog, loanId]
+  );
+
+  // Loading state
+  if (loanLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  // Error state
+  if (loanError || !loan) {
     return (
       <div className="flex flex-col items-center justify-center h-64">
         <p className="text-muted-foreground">Loan not found</p>
