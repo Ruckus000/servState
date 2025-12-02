@@ -15,11 +15,13 @@ import { PaymentDialog } from '@/components/payments/payment-dialog';
 import { AuditLogTable } from '@/components/audit/audit-log-table';
 import { DocumentUploadZone } from '@/components/documents/DocumentUploadZone';
 import { DocumentList } from '@/components/documents/DocumentList';
+import { CorrespondenceList } from '@/components/correspondence/correspondence-list';
 import { useLoan } from '@/hooks/use-loans';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useDocuments } from '@/hooks/use-documents';
 import { useNotes } from '@/hooks/use-notes';
 import { useMessages } from '@/hooks/use-messages';
+import { useCorrespondence } from '@/hooks/use-correspondence';
 import { useTasks } from '@/hooks/use-tasks';
 import { useAuditLog } from '@/hooks/use-audit-log';
 import { formatCurrency, formatPercent, formatDate, formatDateTime, formatPhone, formatDuration } from '@/lib/format';
@@ -38,6 +40,7 @@ export default function LoanDetailPage() {
   const { data: documents = [], isLoading: documentsLoading } = useDocuments(loanId);
   const { data: notes = [], isLoading: notesLoading } = useNotes(loanId);
   const { data: messages = [], isLoading: messagesLoading } = useMessages(loanId);
+  const { data: correspondence = [], isLoading: correspondenceLoading } = useCorrespondence(loanId);
   const { data: tasks = [], isLoading: tasksLoading } = useTasks(loanId);
   const { data: auditLog = [], isLoading: auditLoading } = useAuditLog(loanId);
 
@@ -160,7 +163,8 @@ export default function LoanDetailPage() {
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="history">History ({transactions.length})</TabsTrigger>
-          <TabsTrigger value="correspondence">Correspondence ({messages.length})</TabsTrigger>
+          <TabsTrigger value="messages">Messages ({messages.length})</TabsTrigger>
+          <TabsTrigger value="correspondence">Correspondence ({correspondence.length})</TabsTrigger>
           <TabsTrigger value="documents">Documents ({documents.length})</TabsTrigger>
           <TabsTrigger value="notes">Notes ({notes.length})</TabsTrigger>
           <TabsTrigger value="tasks">Tasks ({tasks.length})</TabsTrigger>
@@ -260,10 +264,10 @@ export default function LoanDetailPage() {
           </Card>
         </TabsContent>
 
-        <TabsContent value="correspondence">
+        <TabsContent value="messages">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Correspondence History</CardTitle>
+              <CardTitle className="text-lg">Secure Messages</CardTitle>
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
@@ -293,6 +297,20 @@ export default function LoanDetailPage() {
                   <p className="text-center text-muted-foreground py-8">No messages</p>
                 )}
               </div>
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="correspondence">
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-lg">Correspondence Log</CardTitle>
+              <p className="text-sm text-muted-foreground">
+                Complete history of all contact with borrower (calls, emails, letters, SMS)
+              </p>
+            </CardHeader>
+            <CardContent>
+              <CorrespondenceList correspondence={correspondence} />
             </CardContent>
           </Card>
         </TabsContent>

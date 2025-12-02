@@ -127,4 +127,16 @@ export const documentUploadSchema = z.object({
   contentType: z.string().min(1),
 });
 
+export const correspondenceCreateSchema = z.object({
+  loan_id: z.string().uuid(),
+  type: z.enum(['call', 'email', 'letter', 'sms']),
+  direction: z.enum(['inbound', 'outbound']),
+  date: z.string(), // ISO date string
+  subject: z.string().max(255).optional(),
+  outcome: z.string().max(255).optional(),
+  duration: z.number().int().min(0).optional(), // seconds for calls
+  notes: z.string().optional(),
+});
+
+
 

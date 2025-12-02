@@ -70,6 +70,33 @@ INSERT INTO tasks (loan_id, title, description, priority, status, assigned_to, d
 ON CONFLICT DO NOTHING;
 
 -- ============================================
+-- Sample Correspondence (calls, emails, letters, SMS)
+-- ============================================
+INSERT INTO correspondence (loan_id, type, direction, date, subject, outcome, duration, notes) VALUES
+  -- Delinquent Loan (Michael Chen) - Collections Activity
+  ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'call', 'outbound', '2023-12-15 11:30:00', 'Collections Call - 45 days past due', 'voicemail', 45, 'Left message requesting immediate callback regarding past due amount. Mentioned potential impact on credit if not resolved.'),
+  ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'call', 'inbound', '2023-12-18 14:20:00', 'Return call from borrower', 'discussed', 320, 'Borrower explained financial hardship due to medical expenses. Promised payment by end of month. Provided information about hardship assistance programs.'),
+  ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'email', 'outbound', '2023-12-19 09:00:00', 'Delinquency Notice - Action Required', NULL, NULL, 'Sent formal delinquency notice with payment options and hardship assistance information. Included link to payment portal.'),
+  ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a12', 'sms', 'outbound', '2023-12-20 10:00:00', 'Payment Reminder', NULL, NULL, 'Reminder: Your mortgage payment is 45 days past due. Please call us at 555-0100 or visit servstate.com to make a payment.'),
+
+  -- Active Loan (James Anderson) - Normal Service
+  ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'email', 'outbound', '2023-09-15 10:00:00', 'Annual Escrow Analysis Completed', NULL, NULL, 'Your annual escrow analysis has been completed. Your new monthly escrow payment will be $550.00 starting with your next payment.'),
+  ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'call', 'inbound', '2023-09-22 15:45:00', 'Escrow inquiry', 'discussed', 180, 'Borrower called to ask about escrow increase. Explained property tax increase and provided detailed breakdown. Customer satisfied with explanation.'),
+  ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a11', 'letter', 'outbound', '2023-11-01 00:00:00', 'Monthly Statement - November 2023', NULL, NULL, 'Monthly mortgage statement sent via USPS. Includes payment breakdown, escrow balance, and year-to-date summary.'),
+
+  -- VA Loan (Sarah Williams) - Rate Modification
+  ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13', 'call', 'inbound', '2023-11-10 13:30:00', 'Rate modification inquiry', 'discussed', 420, 'Borrower inquired about refinancing options given recent rate changes. Provided information on VA streamline refinance (IRRRL). Customer requested application package.'),
+  ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13', 'email', 'outbound', '2023-11-10 16:00:00', 'VA IRRRL Application Package', NULL, NULL, 'Sent VA streamline refinance application package with instructions. Included rate sheet and estimated savings analysis.'),
+  ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a13', 'sms', 'outbound', '2023-11-12 09:30:00', 'Document Request', NULL, NULL, 'Reminder: We need your signed VA refinance application by 11/20. Upload at servstate.com/documents or fax to 555-0199.'),
+
+  -- Forbearance Loan (Robert Garcia) - Hardship Assistance
+  ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14', 'call', 'inbound', '2023-12-05 11:00:00', 'Forbearance request', 'discussed', 540, 'Borrower experiencing temporary hardship due to job loss. Discussed forbearance options and requirements. Sent application packet.'),
+  ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14', 'letter', 'outbound', '2023-12-07 00:00:00', 'Forbearance Approval Letter', NULL, NULL, 'Formal forbearance agreement letter sent via certified mail. 6-month forbearance approved with repayment plan details.'),
+  ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14', 'email', 'outbound', '2023-12-08 10:00:00', 'Forbearance Confirmation and Next Steps', NULL, NULL, 'Your forbearance request has been approved. Please review the attached agreement and repayment plan. Contact us with any questions.'),
+  ('b0eebc99-9c0b-4ef8-bb6d-6bb9bd380a14', 'call', 'outbound', '2023-12-22 14:30:00', 'Forbearance check-in', 'connected', 180, 'Monthly check-in call. Borrower confirmed still actively seeking employment. Provided information on job assistance programs. Next check-in scheduled for 1/22/24.')
+ON CONFLICT DO NOTHING;
+
+-- ============================================
 -- Sample Audit Log Entries
 -- ============================================
 INSERT INTO audit_log (loan_id, action_type, category, description, performed_by, performed_at, details) VALUES
