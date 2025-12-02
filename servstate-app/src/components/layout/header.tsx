@@ -1,7 +1,8 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 import { Search, User, LogOut, Settings, HelpCircle } from 'lucide-react';
 import { NotificationPopover } from '@/components/notifications/notification-popover';
 import { Button } from '@/components/ui/button';
@@ -24,6 +25,7 @@ interface HeaderProps {
 
 export function Header({ sidebarCollapsed }: HeaderProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -87,24 +89,47 @@ export function Header({ sidebarCollapsed }: HeaderProps) {
             <DropdownMenuContent align="end" className="w-56">
               <DropdownMenuLabel>My Account</DropdownMenuLabel>
               <DropdownMenuSeparator />
-              <DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  const route = isBorrowerRoute
+                    ? '/borrower/profile'
+                    : '/servicer/profile';
+                  router.push(route);
+                }}
+              >
                 <User className="mr-2 h-4 w-4" />
                 Profile
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  const route = isBorrowerRoute
+                    ? '/borrower/settings'
+                    : '/servicer/settings';
+                  router.push(route);
+                }}
+              >
                 <Settings className="mr-2 h-4 w-4" />
                 Settings
               </DropdownMenuItem>
-              <DropdownMenuItem>
+              <DropdownMenuItem
+                onClick={() => {
+                  const route = isBorrowerRoute
+                    ? '/borrower/messages'
+                    : '/servicer/notifications';
+                  router.push(route);
+                }}
+              >
                 <HelpCircle className="mr-2 h-4 w-4" />
-                Help & Support
+                Support Center
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem
                 variant="destructive"
-                onClick={() => {
-                  // TODO: Implement logout functionality when auth is added
-                  // This will call supabase.auth.signOut() and redirect to /login
+                onClick={async () => {
+                  await signOut({
+                    callbackUrl: '/login',
+                    redirect: true
+                  });
                 }}
               >
                 <LogOut className="mr-2 h-4 w-4" />
