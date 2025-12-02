@@ -39,8 +39,8 @@ export default function TasksPage() {
     const matchesStatus = statusFilter === 'all' || task.status === statusFilter;
     const matchesCategory = categoryFilter === 'all' || task.category === categoryFilter;
 
-    // Special handling for high priority: exclude completed tasks
-    if (priorityFilter === 'high' && task.status === 'completed') {
+    // Special handling for high priority: exclude completed tasks ONLY when status filter is 'all'
+    if (priorityFilter === 'high' && statusFilter === 'all' && task.status === 'completed') {
       return false;
     }
 
