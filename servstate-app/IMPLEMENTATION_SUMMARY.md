@@ -217,26 +217,66 @@ npm run dev
 
 ### AWS S3 Document Storage
 
-**Status**: Infrastructure ready, requires AWS credentials
+**Status**: In progress
 
-**What's needed**:
+**Completed so far**
 
-1. Create AWS S3 bucket
-2. Configure bucket CORS
-3. Create IAM user with S3 permissions
-4. Add environment variables:
-   ```env
-   AWS_ACCESS_KEY_ID=your-key
-   AWS_SECRET_ACCESS_KEY=your-secret
-   AWS_REGION=us-east-1
-   AWS_S3_BUCKET=servstate-documents
+- S3 bucket created (general-purpose, private) with Block Public Access ON (all 4 settings).
+- Object ownership set to Bucket owner enforced (ACLs disabled).
+- CORS configured for development and production:
+  ```json
+  [
+    {
+      "AllowedHeaders": ["*"],
+      "AllowedMethods": ["GET", "PUT", "HEAD"],
+      "AllowedOrigins": [
+        "http://localhost:3000",
+        "https://serv-state.vercel.app"
+      ],
+      "ExposeHeaders": ["ETag"],
+      "MaxAgeSeconds": 3000
+    }
+  ]
+  ```
+
+**Decisions & notes**
+
+- Default encryption: use SSE-S3 (AES-256) to start. If switching to SSE-KMS later, enable Bucket Key and grant KMS permissions to the presigning principal.
+- Versioning: optional but recommended for document recovery; enable per environment when ready.
+- Tags: optional; recommended for cost tracking (e.g., Project=ServState, Environment=Dev/Prod).
+
+**Next steps**
+
+1. Create IAM user/role with bucket-scoped S3 permissions (replace `YOUR_BUCKET`):
+   ```json
+   {
+     "Version": "2012-10-17",
+     "Statement": [
+       {
+         "Effect": "Allow",
+         "Action": ["s3:ListBucket"],
+         "Resource": "arn:aws:s3:::YOUR_BUCKET"
+       },
+       {
+         "Effect": "Allow",
+         "Action": ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"],
+         "Resource": "arn:aws:s3:::YOUR_BUCKET/*"
+       }
+     ]
+   }
    ```
+2. Add environment variables in `servstate-app/.env.local` (see section below).
+3. Implement S3 helper `src/lib/s3.ts` with `presignPut`/`presignGet` and a `makeKey(loanId, filename)` helper.
+4. Update APIs:
+   - `src/app/api/documents/route.ts` (POST): generate key, presign PUT, insert DB metadata (`storage_path` = key), return `{ document, uploadUrl }`.
+   - `src/app/api/documents/[id]/download/route.ts` (GET): return presigned GET URL.
+5. If using custom domains, add them to CORS. Consider separate buckets per env (dev/preview/prod).
 
-**Files to complete**:
+**Files to complete**
 
-- `src/lib/s3.ts` - Upload/download functions
-- `src/app/api/documents/route.ts` - Add S3 upload logic
-- `src/app/api/documents/[id]/download/route.ts` - Add presigned URL generation
+- `src/lib/s3.ts` - Presigned URL helpers.
+- `src/app/api/documents/route.ts` - Return presigned PUT + create metadata.
+- `src/app/api/documents/[id]/download/route.ts` - Return presigned GET.
 
 ### Additional Environment Variables Needed
 

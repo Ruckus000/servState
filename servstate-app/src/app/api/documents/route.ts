@@ -2,6 +2,14 @@ import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import { errorResponse, successResponse, validateLoanAccess, createAuditLogEntry } from '@/lib/api-helpers';
+import { documentUploadSchema } from '@/lib/schemas';
+import {
+  generateDocumentKey,
+  generatePresignedUploadUrl,
+  isValidContentType,
+  isValidFileSize,
+} from '@/lib/s3';
+import { formatFileSize } from '@/lib/format';
 
 /**
  * GET /api/documents?loanId=...
@@ -44,7 +52,23 @@ export async function GET(request: NextRequest) {
 
 /**
  * POST /api/documents
- * Create document metadata (S3 upload will be added later)
+ * Generate presigned upload URL and create document metadata
+ *
+ * Request body:
+ * {
+ *   loan_id: string (UUID)
+ *   name: string (filename)
+ *   type: DocumentType
+ *   size: number (bytes)
+ *   contentType: string (MIME type)
+ * }
+ *
+ * Response:
+ * {
+ *   document: Document (metadata record)
+ *   uploadUrl: string (presigned S3 PUT URL)
+ *   expiresIn: number (seconds until URL expires)
+ * }
  */
 export async function POST(request: NextRequest) {
   try {
@@ -56,11 +80,16 @@ export async function POST(request: NextRequest) {
     const { user } = session;
     const body = await request.json();
 
-    const { loan_id, name, type, size, storage_path } = body;
-
-    if (!loan_id || !name || !type) {
-      return errorResponse('loan_id, name, and type are required', 400);
+    // Validate request body
+    const validation = documentUploadSchema.safeParse(body);
+    if (!validation.success) {
+      return errorResponse(
+        `Validation error: ${validation.error.errors.map(e => e.message).join(', ')}`,
+        400
+      );
     }
+
+    const { loan_id, name, type, size, contentType } = validation.data;
 
     // Check access to loan
     const hasAccess = await validateLoanAccess(user.id, loan_id, user.role);
@@ -68,7 +97,29 @@ export async function POST(request: NextRequest) {
       return errorResponse('Forbidden', 403);
     }
 
-    // Insert document metadata
+    // Validate content type and file size
+    if (!isValidContentType(contentType)) {
+      return errorResponse(
+        'Invalid file type. Allowed types: PDF, JPEG, PNG, TIFF, DOC, DOCX, XLS, XLSX',
+        400
+      );
+    }
+
+    if (!isValidFileSize(size)) {
+      return errorResponse('File size must be between 1 byte and 100MB', 400);
+    }
+
+    // Generate S3 key
+    const s3Key = generateDocumentKey(loan_id, name);
+
+    // Generate presigned upload URL
+    const presignedUpload = await generatePresignedUploadUrl(
+      s3Key,
+      contentType,
+      size
+    );
+
+    // Insert document metadata into database
     const result = await sql`
       INSERT INTO documents (
         loan_id,
@@ -82,8 +133,8 @@ export async function POST(request: NextRequest) {
         ${name},
         ${type},
         NOW(),
-        ${size || null},
-        ${storage_path || null}
+        ${formatFileSize(size)},
+        ${s3Key}
       )
       RETURNING *
     `;
@@ -93,20 +144,40 @@ export async function POST(request: NextRequest) {
     // Create audit log entry
     await createAuditLogEntry({
       loanId: loan_id,
-      actionType: 'document_uploaded',
+      actionType: 'document_upload_initiated',
       category: 'document',
-      description: `Document uploaded: ${name}`,
+      description: `Document upload initiated: ${name}`,
       performedBy: user.name,
       details: {
         document_id: document.id,
         type,
+        size: formatFileSize(size),
+        content_type: contentType,
       },
     });
 
-    return successResponse(document, 201);
+    return successResponse(
+      {
+        document,
+        uploadUrl: presignedUpload.url,
+        expiresIn: presignedUpload.expiresIn,
+      },
+      201
+    );
   } catch (error) {
     console.error('Error creating document:', error);
-    return errorResponse('Failed to create document', 500);
+
+    // Provide more specific error messages
+    if (error instanceof Error) {
+      if (error.message.includes('Invalid content type')) {
+        return errorResponse(error.message, 400);
+      }
+      if (error.message.includes('Invalid file size')) {
+        return errorResponse(error.message, 400);
+      }
+    }
+
+    return errorResponse('Failed to create document upload', 500);
   }
 }
 

@@ -1,11 +1,19 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { sql } from '@/lib/db';
-import { errorResponse, validateLoanAccess } from '@/lib/api-helpers';
+import { errorResponse, successResponse, validateLoanAccess } from '@/lib/api-helpers';
+import { generatePresignedDownloadUrl, extractFilenameFromKey } from '@/lib/s3';
 
 /**
  * GET /api/documents/[id]/download
- * Generate presigned URL for document download (S3 integration will be added later)
+ * Generate presigned URL for document download
+ *
+ * Response:
+ * {
+ *   downloadUrl: string (presigned S3 GET URL)
+ *   expiresIn: number (seconds until URL expires)
+ *   filename: string (original filename for download)
+ * }
  */
 export async function GET(
   request: NextRequest,
@@ -20,7 +28,7 @@ export async function GET(
     const { id: documentId } = await params;
     const { user } = session;
 
-    // Get document
+    // Get document metadata
     const documents = await sql`
       SELECT * FROM documents WHERE id = ${documentId}
     `;
@@ -37,12 +45,39 @@ export async function GET(
       return errorResponse('Forbidden', 403);
     }
 
-    // TODO: Generate presigned S3 URL when S3 is integrated
-    // For now, return document metadata
-    return errorResponse('S3 download not yet implemented', 501);
+    // Validate storage_path exists
+    if (!document.storage_path) {
+      return errorResponse('Document not yet uploaded to storage', 404);
+    }
+
+    // Extract original filename from S3 key or use document name
+    const filename = extractFilenameFromKey(document.storage_path) || document.name;
+
+    // Generate presigned download URL
+    const presignedDownload = await generatePresignedDownloadUrl(
+      document.storage_path,
+      filename
+    );
+
+    return successResponse({
+      downloadUrl: presignedDownload.url,
+      expiresIn: presignedDownload.expiresIn,
+      filename,
+    });
   } catch (error) {
-    console.error('Error downloading document:', error);
-    return errorResponse('Failed to download document', 500);
+    console.error('Error generating download URL:', error);
+
+    if (error instanceof Error) {
+      // AWS SDK errors
+      if (error.name === 'NoSuchKey') {
+        return errorResponse('Document file not found in storage', 404);
+      }
+      if (error.name === 'AccessDenied') {
+        return errorResponse('Storage access denied', 500);
+      }
+    }
+
+    return errorResponse('Failed to generate download URL', 500);
   }
 }
 

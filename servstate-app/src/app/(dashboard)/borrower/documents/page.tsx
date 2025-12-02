@@ -1,10 +1,9 @@
 'use client';
 
-import { useState } from 'react';
-import { FileText, Download, Search, Filter } from 'lucide-react';
+import { useState, useMemo } from 'react';
+import { FileText, Search, Filter, Upload as UploadIcon } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import {
   Select,
@@ -15,40 +14,72 @@ import {
 } from '@/components/ui/select';
 import { PageHeader } from '@/components/shared/page-header';
 import { EmptyState } from '@/components/shared/empty-state';
-import { mockLoans, getDocumentsByLoanId } from '@/data';
-import { formatDate } from '@/lib/format';
-import type { Document, DocumentType } from '@/types';
-
-const documentTypeColors: Record<DocumentType, string> = {
-  Statement: 'bg-blue-100 text-blue-800',
-  Disclosure: 'bg-purple-100 text-purple-800',
-  Correspondence: 'bg-gray-100 text-gray-800',
-  Tax: 'bg-green-100 text-green-800',
-  Legal: 'bg-red-100 text-red-800',
-  Insurance: 'bg-yellow-100 text-yellow-800',
-};
+import { DocumentUploadZone } from '@/components/documents/DocumentUploadZone';
+import { DocumentList } from '@/components/documents/DocumentList';
+import { useDocuments } from '@/hooks/use-documents';
+import type { DocumentType } from '@/types';
 
 export default function BorrowerDocumentsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [showUpload, setShowUpload] = useState(false);
 
-  const loan = mockLoans[0];
-  const allDocuments = getDocumentsByLoanId(loan.id);
+  // TODO: Get actual loan ID from user session/context
+  // For now, using a hardcoded loan ID - replace with actual user's loan
+  const loanId = '550e8400-e29b-41d4-a716-446655440000';
 
-  const filteredDocuments = allDocuments.filter((doc) => {
-    const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase());
-    const matchesType = typeFilter === 'all' || doc.type === typeFilter;
-    return matchesSearch && matchesType;
-  });
+  const { data: documents = [], isLoading, refetch } = useDocuments(loanId);
 
-  const documentTypes = [...new Set(allDocuments.map((d) => d.type))];
+  const filteredDocuments = useMemo(() => {
+    return documents.filter((doc) => {
+      const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase());
+      const matchesType = typeFilter === 'all' || doc.type === typeFilter;
+      return matchesSearch && matchesType;
+    });
+  }, [documents, searchTerm, typeFilter]);
+
+  const documentTypes = useMemo(() => {
+    return [...new Set(documents.map((d) => d.type))];
+  }, [documents]);
+
+  const handleUploadSuccess = () => {
+    setShowUpload(false);
+    refetch();
+  };
 
   return (
     <div className="space-y-6">
       <PageHeader
         title="Documents"
-        description="View and download your loan documents"
+        description="View, upload, and download your loan documents"
       />
+
+      {/* Upload Section */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <CardTitle className="flex items-center gap-2">
+              <UploadIcon className="h-5 w-5" />
+              Upload Documents
+            </CardTitle>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowUpload(!showUpload)}
+            >
+              {showUpload ? 'Cancel' : 'Upload New'}
+            </Button>
+          </div>
+        </CardHeader>
+        {showUpload && (
+          <CardContent>
+            <DocumentUploadZone
+              loanId={loanId}
+              onUploadSuccess={handleUploadSuccess}
+            />
+          </CardContent>
+        )}
+      </Card>
 
       {/* Filters */}
       <div className="flex flex-col gap-4 sm:flex-row">
@@ -77,47 +108,36 @@ export default function BorrowerDocumentsPage() {
         </Select>
       </div>
 
-      {/* Documents Grid */}
-      {filteredDocuments.length === 0 ? (
-        <EmptyState
-          icon={FileText}
-          title="No documents found"
-          description="Try adjusting your search or filter criteria"
-        />
-      ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-          {filteredDocuments.map((doc) => (
-            <Card key={doc.id} className="hover:shadow-md transition-shadow">
-              <CardContent className="p-4">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-primary/10">
-                      <FileText className="h-5 w-5 text-primary" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="font-medium text-sm truncate">{doc.name}</p>
-                      <p className="text-xs text-muted-foreground">
-                        {formatDate(doc.date)} - {doc.size}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-                <div className="mt-4 flex items-center justify-between">
-                  <Badge
-                    variant="secondary"
-                    className={documentTypeColors[doc.type]}
-                  >
-                    {doc.type}
-                  </Badge>
-                  <Button variant="ghost" size="sm">
-                    <Download className="h-4 w-4" />
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
+      {/* Documents List */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <FileText className="h-5 w-5" />
+            Your Documents
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="flex items-center justify-center p-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100"></div>
+            </div>
+          ) : filteredDocuments.length === 0 && documents.length === 0 ? (
+            <EmptyState
+              icon={FileText}
+              title="No documents uploaded yet"
+              description="Upload your first document to get started"
+            />
+          ) : filteredDocuments.length === 0 ? (
+            <EmptyState
+              icon={FileText}
+              title="No documents found"
+              description="Try adjusting your search or filter criteria"
+            />
+          ) : (
+            <DocumentList documents={filteredDocuments} isLoading={isLoading} />
+          )}
+        </CardContent>
+      </Card>
     </div>
   );
 }

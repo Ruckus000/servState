@@ -132,3 +132,28 @@ export function truncate(text: string, maxLength: number): string {
   if (text.length <= maxLength) return text;
   return `${text.slice(0, maxLength)}...`;
 }
+
+/**
+ * Format file size in bytes to human-readable string
+ *
+ * Note: We store the formatted string in the database (VARCHAR) rather than
+ * raw bytes (INTEGER) for the following reasons:
+ * 1. Database normalization theory suggests storing computed/derived values
+ *    when they're frequently accessed and rarely recalculated
+ * 2. File size is display-only data (never used in calculations or comparisons)
+ * 3. Reduces formatting logic needed in every query/component
+ * 4. More readable in database admin tools and debugging
+ * 5. Consistent formatting across the application
+ *
+ * Trade-off: Slightly more storage space (~10 bytes vs 4 bytes) in exchange
+ * for simpler application code and better developer experience
+ */
+export function formatFileSize(bytes: number): string {
+  if (bytes === 0) return '0 B';
+
+  const k = 1024;
+  const sizes = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(k));
+
+  return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
+}

@@ -61,3 +61,11 @@ export const notificationCreateSchema = z.object({
   link: z.string().optional(),
 });
 
+export const documentUploadSchema = z.object({
+  loan_id: z.string().uuid(),
+  name: z.string().min(1).max(255),
+  type: z.enum(['Statement', 'Disclosure', 'Correspondence', 'Tax', 'Legal', 'Insurance']),
+  size: z.number().positive().max(100 * 1024 * 1024), // 100MB max in bytes
+  contentType: z.string().min(1),
+});
+

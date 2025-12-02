@@ -7,5 +7,19 @@ export interface Document {
   date: string;
   type: DocumentType;
   size: string;
-  url?: string;
+  storage_path: string | null;
+  created_at?: string;
+}
+
+// API response types
+export interface DocumentUploadResponse {
+  document: Document;
+  uploadUrl: string;
+  expiresIn: number;
+}
+
+export interface DocumentDownloadResponse {
+  downloadUrl: string;
+  expiresIn: number;
+  filename: string;
 }
