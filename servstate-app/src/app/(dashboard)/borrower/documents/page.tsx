@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { FileText, Search, Filter } from 'lucide-react';
+import { FileText, Search, Filter, Calendar } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -21,9 +21,51 @@ import type { DocumentType } from '@/types';
 // Prevent static generation due to react-pdf DOMMatrix dependency
 export const dynamic = 'force-dynamic';
 
+// Type mapping for custom document groupings
+const DOC_TYPE_GROUPS: Record<string, DocumentType[]> = {
+  'Statements': ['Statement'],
+  'Correspondence': ['Correspondence'],
+  'Tax': ['Tax'],
+  'Other': ['Disclosure', 'Legal', 'Insurance'],
+};
+
+const getTypesForGroup = (groupName: string): DocumentType[] => {
+  return DOC_TYPE_GROUPS[groupName] || [];
+};
+
+// Helper functions for date filtering
+function extractMonthYear(dateString: string): string {
+  return dateString.substring(0, 7); // "2023-11" from "2023-11-15"
+}
+
+function formatMonthYear(monthYearStr: string): string {
+  const [year, month] = monthYearStr.split('-');
+  const date = new Date(parseInt(year), parseInt(month) - 1);
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'long',
+    year: 'numeric',
+  }).format(date);
+}
+
+function generateMonthYearOptions(documents: any[]): Array<{ value: string; label: string }> {
+  const monthYearSet = new Set<string>();
+  documents.forEach((doc) => {
+    monthYearSet.add(extractMonthYear(doc.date));
+  });
+
+  return Array.from(monthYearSet)
+    .sort()
+    .reverse() // Newest first
+    .map((monthYear) => ({
+      value: monthYear,
+      label: formatMonthYear(monthYear),
+    }));
+}
+
 export default function BorrowerDocumentsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [typeFilter, setTypeFilter] = useState<string>('all');
+  const [monthYearFilter, setMonthYearFilter] = useState<string>('all');
 
   // TODO: Get actual loan ID from user session/context
   // For now, using a hardcoded loan ID - replace with actual user's loan
@@ -31,17 +73,32 @@ export default function BorrowerDocumentsPage() {
 
   const { data: documents = [], isLoading, refetch } = useDocuments(loanId);
 
+  const monthYearOptions = useMemo(() => {
+    return generateMonthYearOptions(documents);
+  }, [documents]);
+
   const filteredDocuments = useMemo(() => {
     return documents.filter((doc) => {
+      // Search filter
       const matchesSearch = doc.name.toLowerCase().includes(searchTerm.toLowerCase());
-      const matchesType = typeFilter === 'all' || doc.type === typeFilter;
-      return matchesSearch && matchesType;
-    });
-  }, [documents, searchTerm, typeFilter]);
 
-  const documentTypes = useMemo(() => {
-    return [...new Set(documents.map((d) => d.type))];
-  }, [documents]);
+      // Type filter with custom grouping
+      let matchesType = true;
+      if (typeFilter !== 'all') {
+        const allowedTypes = getTypesForGroup(typeFilter);
+        matchesType = allowedTypes.includes(doc.type);
+      }
+
+      // Month/Year filter
+      let matchesMonthYear = true;
+      if (monthYearFilter !== 'all') {
+        const docMonthYear = extractMonthYear(doc.date);
+        matchesMonthYear = docMonthYear === monthYearFilter;
+      }
+
+      return matchesSearch && matchesType && matchesMonthYear;
+    });
+  }, [documents, searchTerm, typeFilter, monthYearFilter]);
 
   return (
     <div className="space-y-6">
@@ -50,31 +107,52 @@ export default function BorrowerDocumentsPage() {
         description="View and download your loan documents"
       />
 
-      {/* Filters */}
-      <div className="flex flex-col gap-4 sm:flex-row">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            placeholder="Search documents..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-10"
-          />
+      {/* Filters - Two Row Layout */}
+      <div className="space-y-3">
+        {/* Row 1: Search Bar */}
+        <div className="w-full">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              placeholder="Search documents..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10"
+            />
+          </div>
         </div>
-        <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-full sm:w-[180px]">
-            <Filter className="mr-2 h-4 w-4" />
-            <SelectValue placeholder="All Types" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">All Types</SelectItem>
-            {documentTypes.map((type) => (
-              <SelectItem key={type} value={type}>
-                {type}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
+
+        {/* Row 2: Type + Month/Year Filters */}
+        <div className="flex flex-col gap-4 sm:flex-row">
+          <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <Filter className="mr-2 h-4 w-4" />
+              <SelectValue placeholder="All Types" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              <SelectItem value="Statements">Statements</SelectItem>
+              <SelectItem value="Correspondence">Letters</SelectItem>
+              <SelectItem value="Tax">Tax Documents</SelectItem>
+              <SelectItem value="Other">Other</SelectItem>
+            </SelectContent>
+          </Select>
+
+          <Select value={monthYearFilter} onValueChange={setMonthYearFilter}>
+            <SelectTrigger className="w-full sm:w-[180px]">
+              <Calendar className="mr-2 h-4 w-4" />
+              <SelectValue placeholder="All Dates" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Dates</SelectItem>
+              {monthYearOptions.map((option) => (
+                <SelectItem key={option.value} value={option.value}>
+                  {option.label}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       {/* Documents List */}
