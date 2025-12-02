@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
-import { sql } from '@/lib/db';
+import { sql, query } from '@/lib/db';
 import { errorResponse, successResponse } from '@/lib/api-helpers';
 import type { UserProfile, UpdateProfileRequest } from '@/types/profile';
 
@@ -18,7 +18,7 @@ export async function GET() {
     const { user } = session;
 
     // Get user profile
-    const profiles = await sql<UserProfile[]>`
+    const profiles = await sql`
       SELECT
         p.*,
         u.email as user_email,
@@ -28,7 +28,7 @@ export async function GET() {
       FROM user_profiles p
       INNER JOIN users u ON p.user_id = u.id
       WHERE p.user_id = ${user.id}
-    `;
+    ` as UserProfile[];
 
     if (profiles.length === 0) {
       return errorResponse('Profile not found', 404);
@@ -121,7 +121,7 @@ export async function PUT(request: NextRequest) {
       RETURNING *
     `;
 
-    const result = await sql(queryText, values);
+    const result = await query<UserProfile>(queryText, values);
 
     if (result.length === 0) {
       return errorResponse('Profile not found', 404);

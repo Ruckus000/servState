@@ -25,11 +25,11 @@ export async function GET() {
     const { user } = session;
 
     // Fetch user settings
-    const result = await sql<{ settings: UserSettings }[]>`
+    const result = await sql`
       SELECT settings
       FROM user_settings
       WHERE user_id = ${user.id}
-    `;
+    ` as { settings: UserSettings }[];
 
     if (result.length === 0) {
       // Return empty settings if none exist yet
@@ -80,11 +80,11 @@ export async function PUT(request: NextRequest) {
     }
 
     // Fetch existing settings
-    const existing = await sql<{ settings: UserSettings }[]>`
+    const existing = await sql`
       SELECT settings
       FROM user_settings
       WHERE user_id = ${user.id}
-    `;
+    ` as { settings: UserSettings }[];
 
     // Merge new settings with existing settings
     const mergedSettings: UserSettings = {
@@ -103,7 +103,7 @@ export async function PUT(request: NextRequest) {
     };
 
     // Upsert settings
-    const result = await sql<{ settings: UserSettings }[]>`
+    const result = await sql`
       INSERT INTO user_settings (user_id, settings, updated_at)
       VALUES (${user.id}, ${JSON.stringify(mergedSettings)}, NOW())
       ON CONFLICT (user_id)
@@ -111,7 +111,7 @@ export async function PUT(request: NextRequest) {
         settings = ${JSON.stringify(mergedSettings)},
         updated_at = NOW()
       RETURNING settings
-    `;
+    ` as { settings: UserSettings }[];
 
     return successResponse(result[0].settings);
   } catch (error) {
