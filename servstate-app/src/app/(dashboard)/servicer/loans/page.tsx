@@ -30,7 +30,7 @@ export default function ServicerLoansPage() {
 
   const filteredLoans = useMemo(() => {
     if (!loans) return [];
-    
+
     return loans.filter((loan) => {
       const matchesSearch =
         loan.borrower_name.toLowerCase().includes(searchTerm.toLowerCase()) ||

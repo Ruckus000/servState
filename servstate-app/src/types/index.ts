@@ -13,8 +13,6 @@ export * from './audit-log';
 export * from './payment-method';
 
 // Common utility types
-export type ViewMode = 'borrower' | 'servicer';
-
 export interface NavItem {
   id: string;
   label: string;

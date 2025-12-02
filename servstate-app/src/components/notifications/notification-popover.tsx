@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import {
   Bell,
   CreditCard,
@@ -34,11 +35,6 @@ import {
   formatNotificationTime,
 } from '@/data/notifications';
 import { Notification, NotificationType } from '@/types/notification';
-import type { ViewMode } from '@/types';
-
-interface NotificationPopoverProps {
-  viewMode: ViewMode;
-}
 
 const notificationIcons: Record<NotificationType, React.ReactNode> = {
   payment_due: <Clock className="h-4 w-4 text-warning" />,
@@ -51,7 +47,12 @@ const notificationIcons: Record<NotificationType, React.ReactNode> = {
   delinquency: <AlertTriangle className="h-4 w-4 text-destructive" />,
 };
 
-export function NotificationPopover({ viewMode }: NotificationPopoverProps) {
+export function NotificationPopover() {
+  const pathname = usePathname();
+
+  // Determine viewMode from pathname
+  const viewMode: 'borrower' | 'servicer' = pathname.startsWith('/borrower') ? 'borrower' : 'servicer';
+
   const [notifications, setNotifications] = useState(() =>
     getNotificationsByRole(viewMode).slice(0, 7)
   );

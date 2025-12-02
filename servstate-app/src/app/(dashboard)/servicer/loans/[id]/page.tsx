@@ -13,10 +13,12 @@ import { PageHeader } from '@/components/shared/page-header';
 import { DataTable, type Column } from '@/components/shared/data-table';
 import { PaymentDialog } from '@/components/payments/payment-dialog';
 import { AuditLogTable } from '@/components/audit/audit-log-table';
+import { DocumentUploadZone } from '@/components/documents/DocumentUploadZone';
+import { DocumentList } from '@/components/documents/DocumentList';
+import { useDocuments } from '@/hooks/use-documents';
 import {
   getLoanById,
   getTransactionsByLoanId,
-  getDocumentsByLoanId,
   getNotesByLoanId,
   getCorrespondenceByLoanId,
   getModificationsByLoanId,
@@ -31,10 +33,11 @@ export default function LoanDetailPage() {
   const router = useRouter();
   const loanId = params.id as string;
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
+  const [showUpload, setShowUpload] = useState(false);
 
   const loan = getLoanById(loanId);
   const transactions = getTransactionsByLoanId(loanId);
-  const documents = getDocumentsByLoanId(loanId);
+  const { data: documents = [], isLoading: documentsLoading } = useDocuments(loanId);
   const notes = getNotesByLoanId(loanId);
   const correspondence = getCorrespondenceByLoanId(loanId);
   const modifications = getModificationsByLoanId(loanId);
@@ -296,28 +299,29 @@ export default function LoanDetailPage() {
         <TabsContent value="documents">
           <Card>
             <CardHeader>
-              <CardTitle className="text-lg">Loan Documents</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-2">
-                {documents.map((doc) => (
-                  <div
-                    key={doc.id}
-                    className="flex items-center justify-between rounded-lg border p-3 hover:bg-muted/50"
-                  >
-                    <div>
-                      <p className="font-medium">{doc.name}</p>
-                      <p className="text-sm text-muted-foreground">
-                        {formatDate(doc.date)} - {doc.size}
-                      </p>
-                    </div>
-                    <Badge variant="secondary">{doc.type}</Badge>
-                  </div>
-                ))}
-                {documents.length === 0 && (
-                  <p className="text-center text-muted-foreground py-8">No documents</p>
-                )}
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-lg">Loan Documents</CardTitle>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setShowUpload(!showUpload)}
+                >
+                  {showUpload ? 'Cancel' : 'Upload Document'}
+                </Button>
               </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              {showUpload && (
+                <DocumentUploadZone
+                  loanId={loanId}
+                  onUploadSuccess={() => setShowUpload(false)}
+                />
+              )}
+              <DocumentList
+                documents={documents}
+                isLoading={documentsLoading}
+                showTimestamp={true}
+              />
             </CardContent>
           </Card>
         </TabsContent>

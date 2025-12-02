@@ -1,21 +1,17 @@
-'use client';
+import { auth } from '@/lib/auth';
+import { redirect } from 'next/navigation';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useViewMode } from '@/context/view-mode-context';
+export default async function DashboardPage() {
+  const session = await auth();
 
-export default function DashboardPage() {
-  const router = useRouter();
-  const { viewMode } = useViewMode();
+  if (!session) {
+    redirect('/login');
+  }
 
-  useEffect(() => {
-    // Redirect to the appropriate dashboard based on view mode
-    router.push(viewMode === 'borrower' ? '/borrower' : '/servicer');
-  }, [viewMode, router]);
-
-  return (
-    <div className="flex items-center justify-center h-64">
-      <div className="text-muted-foreground">Redirecting...</div>
-    </div>
-  );
+  // Redirect based on actual user role
+  if (session.user.role === 'borrower') {
+    redirect('/borrower');
+  } else {
+    redirect('/servicer');
+  }
 }

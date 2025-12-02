@@ -1,11 +1,11 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { usePathname } from 'next/navigation';
 import { Search, User, LogOut, Settings, HelpCircle } from 'lucide-react';
 import { NotificationPopover } from '@/components/notifications/notification-popover';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import {
   DropdownMenu,
@@ -15,7 +15,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { useViewMode } from '@/context/view-mode-context';
 import { MOCK_BORROWER, MOCK_SERVICER } from '@/types/user';
 import { cn } from '@/lib/utils';
 
@@ -24,13 +23,16 @@ interface HeaderProps {
 }
 
 export function Header({ sidebarCollapsed }: HeaderProps) {
-  const { viewMode, toggleViewMode } = useViewMode();
-  const currentUser = viewMode === 'borrower' ? MOCK_BORROWER : MOCK_SERVICER;
+  const pathname = usePathname();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Determine current user based on route
+  const isBorrowerRoute = pathname.startsWith('/borrower');
+  const currentUser = isBorrowerRoute ? MOCK_BORROWER : MOCK_SERVICER;
 
   const getInitials = (name: string) => {
     return name
@@ -43,13 +45,12 @@ export function Header({ sidebarCollapsed }: HeaderProps) {
   return (
     <header
       className={cn(
-        'fixed right-0 top-0 z-30 flex items-center justify-between border-b border-border bg-card px-6 transition-all duration-300',
-        viewMode === 'servicer' ? 'h-24' : 'h-16',
+        'fixed right-0 top-0 z-30 flex items-center justify-between border-b border-border bg-card px-6 h-16 transition-all duration-300',
         sidebarCollapsed ? 'left-16' : 'left-64'
       )}
     >
-      {/* Search - only show for servicer view, expanded for prominence */}
-      {viewMode === 'servicer' ? (
+      {/* Search - only show for servicer routes */}
+      {!isBorrowerRoute ? (
         <div className="relative flex-1 max-w-2xl">
           <Search className="absolute left-4 top-1/2 h-5 w-5 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -64,25 +65,8 @@ export function Header({ sidebarCollapsed }: HeaderProps) {
 
       {/* Right side */}
       <div className="flex items-center gap-4">
-        {/* View Mode Toggle - only render after mount to prevent hydration mismatch */}
-        {mounted && (
-          <Tabs
-            value={viewMode}
-            onValueChange={(value) => value !== viewMode && toggleViewMode()}
-          >
-            <TabsList>
-              <TabsTrigger value="borrower" className="text-xs">
-                Borrower
-              </TabsTrigger>
-              <TabsTrigger value="servicer" className="text-xs">
-                Servicer
-              </TabsTrigger>
-            </TabsList>
-          </Tabs>
-        )}
-
         {/* Notifications */}
-        <NotificationPopover viewMode={viewMode} />
+        <NotificationPopover />
 
         {/* User Menu - only render after mount to prevent hydration mismatch */}
         {mounted && (

@@ -19,7 +19,6 @@ import {
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { useViewMode } from '@/context/view-mode-context';
 import { borrowerNavItems, servicerNavItems } from '@/config/navigation';
 import type { NavItem } from '@/types';
 
@@ -42,8 +41,9 @@ interface SidebarProps {
 
 export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const pathname = usePathname();
-  const { viewMode } = useViewMode();
-  const navItems = viewMode === 'borrower' ? borrowerNavItems : servicerNavItems;
+
+  // Determine nav items based on current route
+  const navItems = pathname.startsWith('/borrower') ? borrowerNavItems : servicerNavItems;
 
   return (
     <aside

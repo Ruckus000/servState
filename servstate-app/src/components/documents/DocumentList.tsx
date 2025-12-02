@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import { FileText, Download, Eye } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
@@ -13,17 +14,20 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { useDownloadDocument, usePreviewDocument } from '@/hooks/use-documents';
-import { DocumentPreviewModal } from './DocumentPreviewModal';
-import { formatDate } from '@/lib/format';
+import { formatDate, formatDateTime } from '@/lib/format';
+
+// Dynamically import DocumentPreviewModal to avoid SSR issues with react-pdf
+const DocumentPreviewModal = dynamic(() => import('./DocumentPreviewModal').then(mod => ({ default: mod.DocumentPreviewModal })), { ssr: false });
 import { toast } from 'sonner';
 import type { Document } from '@/types';
 
 interface DocumentListProps {
   documents: Document[];
   isLoading?: boolean;
+  showTimestamp?: boolean;
 }
 
-export function DocumentList({ documents, isLoading }: DocumentListProps) {
+export function DocumentList({ documents, isLoading, showTimestamp = false }: DocumentListProps) {
   const [previewDocument, setPreviewDocument] = useState<{
     id: string;
     name: string;
@@ -88,6 +92,7 @@ export function DocumentList({ documents, isLoading }: DocumentListProps) {
               <TableHead>Name</TableHead>
               <TableHead>Type</TableHead>
               <TableHead>Date</TableHead>
+              {showTimestamp && <TableHead>Uploaded</TableHead>}
               <TableHead>Size</TableHead>
               <TableHead className="text-right">Actions</TableHead>
             </TableRow>
@@ -105,6 +110,11 @@ export function DocumentList({ documents, isLoading }: DocumentListProps) {
                   <Badge variant="secondary">{doc.type}</Badge>
                 </TableCell>
                 <TableCell>{formatDate(doc.date)}</TableCell>
+                {showTimestamp && (
+                  <TableCell className="text-muted-foreground text-sm">
+                    {doc.created_at ? formatDateTime(doc.created_at) : '-'}
+                  </TableCell>
+                )}
                 <TableCell>{doc.size}</TableCell>
                 <TableCell className="text-right">
                   <div className="flex items-center justify-end gap-2">

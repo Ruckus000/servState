@@ -37,7 +37,3 @@ export const servicerNavItems: NavItem[] = [
   { id: 'reports', label: 'Reports', icon: 'BarChart2', href: '/servicer/reports' },
   { id: 'notifications', label: 'Notifications', icon: 'Bell', href: '/servicer/notifications' },
 ];
-
-export const getNavItems = (viewMode: 'borrower' | 'servicer'): NavItem[] => {
-  return viewMode === 'borrower' ? borrowerNavItems : servicerNavItems;
-};

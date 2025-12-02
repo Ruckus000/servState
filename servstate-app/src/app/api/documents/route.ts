@@ -78,13 +78,19 @@ export async function POST(request: NextRequest) {
     }
 
     const { user } = session;
+
+    // Only servicers and admins can upload documents
+    if (user.role !== 'servicer' && user.role !== 'admin') {
+      return errorResponse('Forbidden: Only servicers can upload documents', 403);
+    }
+
     const body = await request.json();
 
     // Validate request body
     const validation = documentUploadSchema.safeParse(body);
     if (!validation.success) {
       return errorResponse(
-        `Validation error: ${validation.error.errors.map(e => e.message).join(', ')}`,
+        `Validation error: ${validation.error.issues.map(e => e.message).join(', ')}`,
         400
       );
     }
