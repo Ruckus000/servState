@@ -108,6 +108,8 @@ export async function generatePresignedUploadUrl(
     Bucket: BUCKET_NAME,
     Key: key,
     ContentType: contentType,
+    // Server-side encryption for compliance
+    ServerSideEncryption: 'AES256',
     // Optional: Add metadata
     Metadata: {
       'upload-timestamp': Date.now().toString(),
