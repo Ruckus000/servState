@@ -1,51 +1,50 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { api } from '@/lib/api-client';
 import type { Task } from '@/types';
 import type { AuditLogEntry } from '@/types/audit-log';
 
 async function fetchTasks(loanId?: string): Promise<Task[]> {
   const params = loanId ? `?loanId=${loanId}` : '';
-  const response = await fetch(`/api/tasks${params}`);
-  if (!response.ok) throw new Error('Failed to fetch tasks');
-  return response.json();
+  return api.get<Task[]>(`/api/tasks${params}`);
 }
 
 async function fetchTask(id: string): Promise<Task> {
-  const response = await fetch(`/api/tasks/${id}`);
-  if (!response.ok) throw new Error('Failed to fetch task');
-  return response.json();
+  return api.get<Task>(`/api/tasks/${id}`);
 }
 
 async function fetchTaskHistory(id: string): Promise<AuditLogEntry[]> {
-  const response = await fetch(`/api/tasks/${id}/history`);
-  if (!response.ok) throw new Error('Failed to fetch task history');
-  return response.json();
+  return api.get<AuditLogEntry[]>(`/api/tasks/${id}/history`);
 }
 
-async function createTask(data: any): Promise<Task> {
-  const response = await fetch('/api/tasks', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to create task');
-  }
-  return response.json();
+interface CreateTaskData {
+  loan_id?: string;
+  title: string;
+  description?: string;
+  priority?: string;
+  due_date?: string;
+  assigned_to?: string;
+  type?: string;
+  category?: string;
 }
 
-async function updateTask(id: string, data: any): Promise<Task> {
-  const response = await fetch(`/api/tasks/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to update task');
-  }
-  return response.json();
+async function createTask(data: CreateTaskData): Promise<Task> {
+  return api.post<Task>('/api/tasks', data);
+}
+
+interface UpdateTaskData {
+  title?: string;
+  description?: string;
+  status?: string;
+  priority?: string;
+  due_date?: string;
+  assigned_to?: string;
+  type?: string;
+  category?: string;
+}
+
+async function updateTask(id: string, data: UpdateTaskData): Promise<Task> {
+  return api.put<Task>(`/api/tasks/${id}`, data);
 }
 
 export function useTasks(loanId?: string) {
@@ -93,7 +92,7 @@ export function useUpdateTask() {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: any }) => updateTask(id, data),
+    mutationFn: ({ id, data }: { id: string; data: UpdateTaskData }) => updateTask(id, data),
     onMutate: async ({ id, data }) => {
       // Cancel outgoing refetches
       await queryClient.cancelQueries({ queryKey: ['tasks'] });
@@ -104,7 +103,7 @@ export function useUpdateTask() {
       const previousTask = queryClient.getQueryData(['task', id]);
 
       // Optimistically update tasks list
-      queryClient.setQueryData(['tasks'], (old: any) => {
+      queryClient.setQueryData(['tasks'], (old: Task[] | undefined) => {
         if (!old) return old;
         return old.map((task: Task) =>
           task.id === id ? { ...task, ...data } : task
@@ -112,7 +111,7 @@ export function useUpdateTask() {
       });
 
       // Optimistically update single task
-      queryClient.setQueryData(['task', id], (old: any) => {
+      queryClient.setQueryData(['task', id], (old: Task | undefined) => {
         if (!old) return old;
         return { ...old, ...data };
       });
@@ -138,6 +137,3 @@ export function useUpdateTask() {
     },
   });
 }
-
-
-

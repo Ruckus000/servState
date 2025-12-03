@@ -1,24 +1,26 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
+import { api } from '@/lib/api-client';
 import type { Correspondence } from '@/types';
 
+interface CorrespondenceListResponse {
+  data: Correspondence[];
+}
+
+interface CorrespondenceResponse {
+  data: Correspondence;
+}
+
 async function fetchCorrespondence(loanId: string): Promise<Correspondence[]> {
-  const response = await fetch(`/api/correspondence?loanId=${loanId}`);
-  if (!response.ok) throw new Error('Failed to fetch correspondence');
-  return response.json();
+  const response = await api.get<CorrespondenceListResponse>(
+    `/api/correspondence?loanId=${loanId}`
+  );
+  return response.data;
 }
 
 async function createCorrespondence(data: any): Promise<Correspondence> {
-  const response = await fetch('/api/correspondence', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to create correspondence');
-  }
-  return response.json();
+  const response = await api.post<CorrespondenceResponse>('/api/correspondence', data);
+  return response.data;
 }
 
 export function useCorrespondence(loanId: string) {
@@ -43,4 +45,3 @@ export function useCreateCorrespondence() {
     },
   });
 }
-

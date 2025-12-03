@@ -1,10 +1,9 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { api } from '@/lib/api-client';
 import type { Document, DocumentUploadResponse, DocumentDownloadResponse } from '@/types';
 
 async function fetchDocuments(loanId: string): Promise<Document[]> {
-  const response = await fetch(`/api/documents?loanId=${loanId}`);
-  if (!response.ok) throw new Error('Failed to fetch documents');
-  return response.json();
+  return api.get<Document[]>(`/api/documents?loanId=${loanId}`);
 }
 
 interface UploadDocumentParams {
@@ -19,21 +18,11 @@ interface UploadDocumentParams {
 async function uploadDocument(params: UploadDocumentParams): Promise<Document> {
   const { file, ...metadata } = params;
 
-  // Step 1: Get presigned URL from API
-  const response = await fetch('/api/documents', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(metadata),
-  });
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to initiate upload');
-  }
-
-  const data: DocumentUploadResponse = await response.json();
+  // Step 1: Get presigned URL from API (with CSRF protection)
+  const data = await api.post<DocumentUploadResponse>('/api/documents', metadata);
 
   // Step 2: Upload file directly to S3 using presigned URL
+  // Note: S3 presigned URLs don't need CSRF - they're time-limited and pre-authorized
   const uploadResponse = await fetch(data.uploadUrl, {
     method: 'PUT',
     headers: {
@@ -46,20 +35,13 @@ async function uploadDocument(params: UploadDocumentParams): Promise<Document> {
     throw new Error('Failed to upload file to storage');
   }
 
-  // Step 3: Return document metadata (optimistic - no confirmation needed)
+  // Step 3: Return document metadata
   return data.document;
 }
 
 async function downloadDocument(documentId: string): Promise<void> {
   // Get presigned download URL
-  const response = await fetch(`/api/documents/${documentId}/download`);
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to get download URL');
-  }
-
-  const data: DocumentDownloadResponse = await response.json();
+  const data = await api.get<DocumentDownloadResponse>(`/api/documents/${documentId}/download`);
 
   // Trigger download in browser
   const link = document.createElement('a');
@@ -72,14 +54,7 @@ async function downloadDocument(documentId: string): Promise<void> {
 
 async function getPreviewUrl(documentId: string): Promise<string> {
   // Get presigned download URL (same endpoint, but return URL instead of triggering download)
-  const response = await fetch(`/api/documents/${documentId}/download`);
-
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to get preview URL');
-  }
-
-  const data: DocumentDownloadResponse = await response.json();
+  const data = await api.get<DocumentDownloadResponse>(`/api/documents/${documentId}/download`);
   return data.downloadUrl;
 }
 
@@ -114,6 +89,3 @@ export function usePreviewDocument() {
     mutationFn: getPreviewUrl,
   });
 }
-
-
-

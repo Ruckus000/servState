@@ -1,20 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { api } from '@/lib/api-client';
 import type { Note } from '@/types';
 
 async function fetchNotes(loanId: string): Promise<Note[]> {
-  const response = await fetch(`/api/notes?loanId=${loanId}`);
-  if (!response.ok) throw new Error('Failed to fetch notes');
-  return response.json();
+  return api.get<Note[]>(`/api/notes?loanId=${loanId}`);
 }
 
-async function createNote(data: any): Promise<Note> {
-  const response = await fetch('/api/notes', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error('Failed to create note');
-  return response.json();
+interface CreateNoteData {
+  loan_id: string;
+  content: string;
+  is_internal?: boolean;
+}
+
+async function createNote(data: CreateNoteData): Promise<Note> {
+  return api.post<Note>('/api/notes', data);
 }
 
 export function useNotes(loanId: string) {
@@ -27,7 +26,7 @@ export function useNotes(loanId: string) {
 
 export function useCreateNote() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: createNote,
     onSuccess: (_, variables) => {
@@ -35,6 +34,3 @@ export function useCreateNote() {
     },
   });
 }
-
-
-

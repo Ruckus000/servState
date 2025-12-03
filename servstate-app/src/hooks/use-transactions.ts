@@ -1,20 +1,29 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { api, generateIdempotencyKey } from '@/lib/api-client';
 import type { Transaction } from '@/types';
 
 async function fetchTransactions(loanId: string): Promise<Transaction[]> {
-  const response = await fetch(`/api/transactions?loanId=${loanId}`);
-  if (!response.ok) throw new Error('Failed to fetch transactions');
-  return response.json();
+  return api.get<Transaction[]>(`/api/transactions?loanId=${loanId}`);
 }
 
-async function createTransaction(data: any): Promise<Transaction> {
-  const response = await fetch('/api/transactions', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
+interface CreateTransactionData {
+  loan_id: string;
+  type: string;
+  amount: number;
+  principal_amount?: number;
+  interest_amount?: number;
+  escrow_amount?: number;
+  description?: string;
+  reference_number?: string;
+}
+
+async function createTransaction(data: CreateTransactionData): Promise<Transaction> {
+  // Generate idempotency key to prevent duplicate transactions
+  const idempotencyKey = generateIdempotencyKey();
+
+  return api.post<Transaction>('/api/transactions', data, {
+    idempotencyKey,
   });
-  if (!response.ok) throw new Error('Failed to create transaction');
-  return response.json();
 }
 
 export function useTransactions(loanId: string) {
@@ -27,7 +36,7 @@ export function useTransactions(loanId: string) {
 
 export function useCreateTransaction() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: createTransaction,
     onSuccess: (_, variables) => {
@@ -36,6 +45,3 @@ export function useCreateTransaction() {
     },
   });
 }
-
-
-

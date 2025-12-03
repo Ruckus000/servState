@@ -1,29 +1,20 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { api } from '@/lib/api-client';
 import type { Loan } from '@/types';
 
 async function fetchLoans(status?: string): Promise<Loan[]> {
   const params = new URLSearchParams();
   if (status) params.append('status', status);
-  
-  const response = await fetch(`/api/loans?${params}`);
-  if (!response.ok) throw new Error('Failed to fetch loans');
-  return response.json();
+
+  return api.get<Loan[]>(`/api/loans?${params}`);
 }
 
 async function fetchLoan(id: string): Promise<Loan> {
-  const response = await fetch(`/api/loans/${id}`);
-  if (!response.ok) throw new Error('Failed to fetch loan');
-  return response.json();
+  return api.get<Loan>(`/api/loans/${id}`);
 }
 
 async function updateLoan(id: string, data: Partial<Loan>): Promise<Loan> {
-  const response = await fetch(`/api/loans/${id}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error('Failed to update loan');
-  return response.json();
+  return api.put<Loan>(`/api/loans/${id}`, data);
 }
 
 export function useLoans(status?: string) {
@@ -43,7 +34,7 @@ export function useLoan(id: string) {
 
 export function useUpdateLoan() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: ({ id, data }: { id: string; data: Partial<Loan> }) =>
       updateLoan(id, data),
@@ -53,6 +44,3 @@ export function useUpdateLoan() {
     },
   });
 }
-
-
-

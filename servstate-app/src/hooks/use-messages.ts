@@ -1,28 +1,23 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { api } from '@/lib/api-client';
 import type { Message } from '@/types';
 
 async function fetchMessages(loanId: string): Promise<Message[]> {
-  const response = await fetch(`/api/messages?loanId=${loanId}`);
-  if (!response.ok) throw new Error('Failed to fetch messages');
-  return response.json();
+  return api.get<Message[]>(`/api/messages?loanId=${loanId}`);
 }
 
-async function sendMessage(data: any): Promise<Message> {
-  const response = await fetch('/api/messages', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) throw new Error('Failed to send message');
-  return response.json();
+interface SendMessageData {
+  loan_id: string;
+  subject: string;
+  content: string;
+}
+
+async function sendMessage(data: SendMessageData): Promise<Message> {
+  return api.post<Message>('/api/messages', data);
 }
 
 async function markMessageRead(id: string): Promise<Message> {
-  const response = await fetch(`/api/messages/${id}`, {
-    method: 'PATCH',
-  });
-  if (!response.ok) throw new Error('Failed to mark message as read');
-  return response.json();
+  return api.patch<Message>(`/api/messages/${id}`);
 }
 
 export function useMessages(loanId: string) {
@@ -35,7 +30,7 @@ export function useMessages(loanId: string) {
 
 export function useSendMessage() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: sendMessage,
     onSuccess: (_, variables) => {
@@ -46,7 +41,7 @@ export function useSendMessage() {
 
 export function useMarkMessageRead() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: markMessageRead,
     onSuccess: () => {
@@ -54,6 +49,3 @@ export function useMarkMessageRead() {
     },
   });
 }
-
-
-

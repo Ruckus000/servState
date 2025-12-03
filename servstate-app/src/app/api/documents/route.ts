@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { sql } from '@/lib/db';
-import { errorResponse, successResponse, validateLoanAccess, createAuditLogEntry } from '@/lib/api-helpers';
+import { errorResponse, successResponse, validateLoanAccess, createAuditLogEntry, requireCsrf } from '@/lib/api-helpers';
 import { documentUploadSchema } from '@/lib/schemas';
 import {
   generateDocumentKey,
@@ -78,6 +78,12 @@ export async function POST(request: NextRequest) {
     }
 
     const { user } = session;
+
+    // CSRF protection
+    const csrfError = requireCsrf(request, user.id);
+    if (csrfError) {
+      return csrfError;
+    }
 
     // Only servicers and admins can upload documents
     if (user.role !== 'servicer' && user.role !== 'admin') {

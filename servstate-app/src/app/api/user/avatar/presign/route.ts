@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { generatePresignedUploadUrl } from '@/lib/s3';
-import { errorResponse, successResponse } from '@/lib/api-helpers';
+import { errorResponse, successResponse, requireCsrf } from '@/lib/api-helpers';
 
 // Allowed MIME types for avatar uploads (images only)
 const ALLOWED_AVATAR_TYPES = [
@@ -48,6 +48,13 @@ export async function POST(request: NextRequest) {
     }
 
     const { user } = session;
+
+    // CSRF protection
+    const csrfError = requireCsrf(request, user.id);
+    if (csrfError) {
+      return csrfError;
+    }
+
     const body = await request.json();
 
     const { contentType, fileSize } = body;

@@ -1,18 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { api } from '@/lib/api-client';
 import type { Notification } from '@/types';
 
 async function fetchNotifications(): Promise<Notification[]> {
-  const response = await fetch('/api/notifications');
-  if (!response.ok) throw new Error('Failed to fetch notifications');
-  return response.json();
+  return api.get<Notification[]>('/api/notifications');
 }
 
 async function markNotificationRead(id: string): Promise<Notification> {
-  const response = await fetch(`/api/notifications/${id}`, {
-    method: 'PATCH',
-  });
-  if (!response.ok) throw new Error('Failed to mark notification as read');
-  return response.json();
+  return api.patch<Notification>(`/api/notifications/${id}`);
 }
 
 export function useNotifications() {
@@ -24,7 +19,7 @@ export function useNotifications() {
 
 export function useMarkNotificationRead() {
   const queryClient = useQueryClient();
-  
+
   return useMutation({
     mutationFn: markNotificationRead,
     onSuccess: () => {
@@ -32,6 +27,3 @@ export function useMarkNotificationRead() {
     },
   });
 }
-
-
-

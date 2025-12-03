@@ -1,11 +1,12 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { sql } from '@/lib/db';
-import { errorResponse, successResponse } from '@/lib/api-helpers';
+import { errorResponse, successResponse, validateLoanAccess, requireCsrf } from '@/lib/api-helpers';
 
 /**
  * PATCH /api/messages/[id]
  * Mark message as read
+ * Security: Validates user has access to the message's loan before updating
  */
 export async function PATCH(
   request: NextRequest,
@@ -18,17 +19,43 @@ export async function PATCH(
     }
 
     const { id: messageId } = await params;
+    const { user } = session;
 
+    // CSRF protection
+    const csrfError = requireCsrf(request, user.id);
+    if (csrfError) {
+      return csrfError;
+    }
+
+    // First, fetch the message to verify access
+    const message = await sql`
+      SELECT id, loan_id
+      FROM messages
+      WHERE id = ${messageId}
+    `;
+
+    if (message.length === 0) {
+      return errorResponse('Message not found', 404);
+    }
+
+    // Validate user has access to the loan this message belongs to
+    const hasAccess = await validateLoanAccess(
+      user.id,
+      message[0].loan_id,
+      user.role
+    );
+
+    if (!hasAccess) {
+      return errorResponse('Forbidden', 403);
+    }
+
+    // Update the message
     const result = await sql`
-      UPDATE messages 
+      UPDATE messages
       SET read = true
       WHERE id = ${messageId}
       RETURNING *
     `;
-
-    if (result.length === 0) {
-      return errorResponse('Message not found', 404);
-    }
 
     return successResponse(result[0]);
   } catch (error) {
@@ -36,6 +63,3 @@ export async function PATCH(
     return errorResponse('Failed to update message', 500);
   }
 }
-
-
-

@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { sql } from '@/lib/db';
-import { errorResponse, successResponse, validateLoanAccess, createAuditLogEntry } from '@/lib/api-helpers';
+import { errorResponse, successResponse, validateLoanAccess, createAuditLogEntry, requireCsrf } from '@/lib/api-helpers';
 import { transactionCreateSchema } from '@/lib/schemas';
 
 /**
@@ -46,6 +46,7 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/transactions
  * Create a new transaction (servicer only)
+ * Security: Requires CSRF token and idempotency key
  */
 export async function POST(request: NextRequest) {
   try {
@@ -56,9 +57,31 @@ export async function POST(request: NextRequest) {
 
     const { user } = session;
 
+    // CSRF protection for state-changing operation
+    const csrfError = requireCsrf(request, user.id);
+    if (csrfError) {
+      return csrfError;
+    }
+
     // Only servicers can create transactions
     if (user.role !== 'servicer' && user.role !== 'admin') {
       return errorResponse('Forbidden', 403);
+    }
+
+    // Require idempotency key to prevent duplicate transactions
+    const idempotencyKey = request.headers.get('idempotency-key');
+    if (!idempotencyKey) {
+      return errorResponse('Idempotency-Key header is required for transactions', 400);
+    }
+
+    // Check for existing transaction with this idempotency key
+    const existing = await sql`
+      SELECT * FROM transactions WHERE idempotency_key = ${idempotencyKey}
+    `;
+
+    if (existing.length > 0) {
+      // Return existing transaction (idempotent response)
+      return successResponse(existing[0], 200);
     }
 
     const body = await request.json();
@@ -80,7 +103,7 @@ export async function POST(request: NextRequest) {
       return errorResponse('Loan not found', 404);
     }
 
-    // Insert transaction
+    // Insert transaction with idempotency key
     const result = await sql`
       INSERT INTO transactions (
         loan_id,
@@ -92,7 +115,8 @@ export async function POST(request: NextRequest) {
         escrow_amount,
         status,
         description,
-        reference_number
+        reference_number,
+        idempotency_key
       ) VALUES (
         ${data.loan_id},
         NOW(),
@@ -103,7 +127,8 @@ export async function POST(request: NextRequest) {
         ${data.escrow_amount || null},
         'completed',
         ${data.description || null},
-        ${data.reference_number || null}
+        ${data.reference_number || null},
+        ${idempotencyKey}
       )
       RETURNING *
     `;
@@ -121,6 +146,7 @@ export async function POST(request: NextRequest) {
         transaction_id: transaction.id,
         type: data.type,
         amount: data.amount,
+        idempotency_key: idempotencyKey,
       },
       referenceId: transaction.reference_number,
     });
@@ -128,8 +154,8 @@ export async function POST(request: NextRequest) {
     // Update loan principal if this is a payment
     if (data.type === 'Payment' && data.principal_amount) {
       await sql`
-        UPDATE loans 
-        SET 
+        UPDATE loans
+        SET
           current_principal = current_principal - ${data.principal_amount},
           payments_made = payments_made + 1,
           updated_at = NOW()

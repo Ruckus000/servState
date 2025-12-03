@@ -1,7 +1,7 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { sql } from '@/lib/db';
-import { errorResponse, successResponse } from '@/lib/api-helpers';
+import { errorResponse, successResponse, requireCsrf } from '@/lib/api-helpers';
 import type { UserSettings } from '@/types/settings';
 
 /**
@@ -71,6 +71,13 @@ export async function PUT(request: NextRequest) {
     }
 
     const { user } = session;
+
+    // CSRF protection
+    const csrfError = requireCsrf(request, user.id);
+    if (csrfError) {
+      return csrfError;
+    }
+
     const body = await request.json();
 
     const { settings } = body;

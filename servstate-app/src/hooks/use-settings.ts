@@ -1,25 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import type { UserSettings, UpdateSettingsRequest } from '@/types/settings';
+import { api } from '@/lib/api-client';
+import type { UserSettings } from '@/types/settings';
+
+interface SettingsResponse {
+  data: UserSettings;
+}
 
 async function fetchSettings(): Promise<UserSettings> {
-  const response = await fetch('/api/user/settings');
-  if (!response.ok) throw new Error('Failed to fetch settings');
-  const data = await response.json();
-  return data.data;
+  const response = await api.get<SettingsResponse>('/api/user/settings');
+  return response.data;
 }
 
 async function updateSettings(settings: UserSettings): Promise<UserSettings> {
-  const response = await fetch('/api/user/settings', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ settings }),
-  });
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to update settings');
-  }
-  const result = await response.json();
-  return result.data;
+  const response = await api.put<SettingsResponse>('/api/user/settings', { settings });
+  return response.data;
 }
 
 export function useSettings() {

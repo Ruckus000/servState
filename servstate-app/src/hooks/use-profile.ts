@@ -1,45 +1,38 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { api } from '@/lib/api-client';
 import type { UserProfile, UpdateProfileRequest } from '@/types/profile';
 
+interface ProfileResponse {
+  data: UserProfile;
+}
+
+interface AvatarPresignResponse {
+  data: { url: string; key: string; avatarUrl: string; expiresIn: number };
+}
+
 async function fetchProfile(): Promise<UserProfile> {
-  const response = await fetch('/api/user/profile');
-  if (!response.ok) throw new Error('Failed to fetch profile');
-  const data = await response.json();
-  return data.data;
+  const response = await api.get<ProfileResponse>('/api/user/profile');
+  return response.data;
 }
 
 async function updateProfile(data: UpdateProfileRequest): Promise<UserProfile> {
-  const response = await fetch('/api/user/profile', {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data),
-  });
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to update profile');
-  }
-  const result = await response.json();
-  return result.data;
+  const response = await api.put<ProfileResponse>('/api/user/profile', data);
+  return response.data;
 }
 
 async function generateAvatarPresignedUrl(
   contentType: string,
   fileSize: number
 ): Promise<{ url: string; key: string; avatarUrl: string; expiresIn: number }> {
-  const response = await fetch('/api/user/avatar/presign', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ contentType, fileSize }),
+  const response = await api.post<AvatarPresignResponse>('/api/user/avatar/presign', {
+    contentType,
+    fileSize,
   });
-  if (!response.ok) {
-    const error = await response.json();
-    throw new Error(error.error || 'Failed to generate upload URL');
-  }
-  const result = await response.json();
-  return result.data;
+  return response.data;
 }
 
 async function uploadAvatarToS3(url: string, file: File): Promise<void> {
+  // Direct S3 upload - no CSRF needed as this goes to AWS, not our API
   const response = await fetch(url, {
     method: 'PUT',
     headers: {
@@ -72,7 +65,7 @@ export function useUpdateProfile() {
 
 export function useAvatarUpload() {
   const queryClient = useQueryClient();
-  const updateProfile = useUpdateProfile();
+  const updateProfileMutation = useUpdateProfile();
 
   return useMutation({
     mutationFn: async (file: File) => {
@@ -86,7 +79,7 @@ export function useAvatarUpload() {
       await uploadAvatarToS3(url, file);
 
       // Step 3: Update profile with new avatar URL
-      await updateProfile.mutateAsync({ avatar_url: avatarUrl });
+      await updateProfileMutation.mutateAsync({ avatar_url: avatarUrl });
 
       return avatarUrl;
     },

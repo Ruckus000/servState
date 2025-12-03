@@ -1,12 +1,13 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { sql } from '@/lib/db';
-import { errorResponse, successResponse, createAuditLogEntry } from '@/lib/api-helpers';
+import { errorResponse, successResponse, createAuditLogEntry, validateLoanAccess, requireCsrf } from '@/lib/api-helpers';
 import { noteCreateSchema } from '@/lib/schemas';
 
 /**
  * GET /api/notes?loanId=...
  * List internal notes (servicer only)
+ * Security: Requires loanId and validates access
  */
 export async function GET(request: NextRequest) {
   try {
@@ -29,8 +30,14 @@ export async function GET(request: NextRequest) {
       return errorResponse('loanId is required', 400);
     }
 
+    // Validate loan access
+    const hasAccess = await validateLoanAccess(user.id, loanId, user.role);
+    if (!hasAccess) {
+      return errorResponse('Forbidden', 403);
+    }
+
     const notes = await sql`
-      SELECT * FROM notes 
+      SELECT * FROM notes
       WHERE loan_id = ${loanId}
       ORDER BY date DESC
     `;
@@ -45,6 +52,7 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/notes
  * Add a note (servicer only)
+ * Security: Requires CSRF token, validates loan access before creating
  */
 export async function POST(request: NextRequest) {
   try {
@@ -54,6 +62,12 @@ export async function POST(request: NextRequest) {
     }
 
     const { user } = session;
+
+    // CSRF protection
+    const csrfError = requireCsrf(request, user.id);
+    if (csrfError) {
+      return csrfError;
+    }
 
     // Only servicers can create notes
     if (user.role !== 'servicer' && user.role !== 'admin') {
@@ -69,6 +83,12 @@ export async function POST(request: NextRequest) {
     }
 
     const data = validation.data;
+
+    // Validate loan access before creating note
+    const hasAccess = await validateLoanAccess(user.id, data.loan_id, user.role);
+    if (!hasAccess) {
+      return errorResponse('Forbidden', 403);
+    }
 
     // Insert note
     const result = await sql`

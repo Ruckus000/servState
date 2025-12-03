@@ -1,11 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
+import { api } from '@/lib/api-client';
 import type { AuditLogEntry } from '@/types';
 
 async function fetchAuditLog(loanId?: string): Promise<AuditLogEntry[]> {
   const params = loanId ? `?loanId=${loanId}` : '';
-  const response = await fetch(`/api/audit-log${params}`);
-  if (!response.ok) throw new Error('Failed to fetch audit log');
-  return response.json();
+  return api.get<AuditLogEntry[]>(`/api/audit-log${params}`);
 }
 
 export function useAuditLog(loanId?: string) {
@@ -14,6 +13,3 @@ export function useAuditLog(loanId?: string) {
     queryFn: () => fetchAuditLog(loanId),
   });
 }
-
-
-

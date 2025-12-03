@@ -1,12 +1,13 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { sql } from '@/lib/db';
-import { errorResponse, successResponse, createAuditLogEntry } from '@/lib/api-helpers';
+import { errorResponse, successResponse, createAuditLogEntry, validateLoanAccess, requireCsrf } from '@/lib/api-helpers';
 import { taskCreateSchema } from '@/lib/schemas';
 
 /**
  * GET /api/tasks?loanId=...
  * List tasks (servicer only)
+ * Security: Requires loanId and validates access
  */
 export async function GET(request: NextRequest) {
   try {
@@ -25,19 +26,22 @@ export async function GET(request: NextRequest) {
     const { searchParams } = new URL(request.url);
     const loanId = searchParams.get('loanId');
 
-    let tasks;
-    if (loanId) {
-      tasks = await sql`
-        SELECT * FROM tasks 
-        WHERE loan_id = ${loanId}
-        ORDER BY due_date ASC, priority DESC
-      `;
-    } else {
-      tasks = await sql`
-        SELECT * FROM tasks 
-        ORDER BY due_date ASC, priority DESC
-      `;
+    // Require loanId for security - prevents fetching all tasks
+    if (!loanId) {
+      return errorResponse('loanId parameter is required', 400);
     }
+
+    // Validate loan access
+    const hasAccess = await validateLoanAccess(user.id, loanId, user.role);
+    if (!hasAccess) {
+      return errorResponse('Forbidden', 403);
+    }
+
+    const tasks = await sql`
+      SELECT * FROM tasks
+      WHERE loan_id = ${loanId}
+      ORDER BY due_date ASC, priority DESC
+    `;
 
     return successResponse(tasks);
   } catch (error) {
@@ -49,6 +53,7 @@ export async function GET(request: NextRequest) {
 /**
  * POST /api/tasks
  * Create a new task (servicer only)
+ * Security: Requires CSRF token, validates loan access before creating
  */
 export async function POST(request: NextRequest) {
   try {
@@ -58,6 +63,12 @@ export async function POST(request: NextRequest) {
     }
 
     const { user } = session;
+
+    // CSRF protection
+    const csrfError = requireCsrf(request, user.id);
+    if (csrfError) {
+      return csrfError;
+    }
 
     // Only servicers can create tasks
     if (user.role !== 'servicer' && user.role !== 'admin') {
@@ -73,6 +84,12 @@ export async function POST(request: NextRequest) {
     }
 
     const data = validation.data;
+
+    // Validate loan access before creating task
+    const hasAccess = await validateLoanAccess(user.id, data.loan_id, user.role);
+    if (!hasAccess) {
+      return errorResponse('Forbidden', 403);
+    }
 
     // Insert task
     const result = await sql`

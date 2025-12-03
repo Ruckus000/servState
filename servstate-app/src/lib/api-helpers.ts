@@ -1,5 +1,6 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { sql } from './db';
+import { validateCsrfToken } from './csrf';
 import type { UserRole } from '@/types';
 
 /**
@@ -77,6 +78,37 @@ export async function createAuditLogEntry(params: {
     console.error('Failed to create audit log entry:', error);
     // Don't throw - audit logging failures shouldn't break the main operation
   }
+}
+
+/**
+ * Validate CSRF token from request headers
+ * Returns true if valid, false otherwise
+ */
+export function validateRequestCsrf(
+  request: NextRequest,
+  userId: string
+): boolean {
+  const csrfToken = request.headers.get('x-csrf-token');
+
+  if (!csrfToken) {
+    return false;
+  }
+
+  return validateCsrfToken(csrfToken, userId);
+}
+
+/**
+ * Helper to check CSRF and return error response if invalid
+ * Use at the start of POST/PUT/PATCH/DELETE handlers
+ */
+export function requireCsrf(
+  request: NextRequest,
+  userId: string
+): NextResponse | null {
+  if (!validateRequestCsrf(request, userId)) {
+    return errorResponse('Invalid or missing CSRF token', 403);
+  }
+  return null;
 }
 
 

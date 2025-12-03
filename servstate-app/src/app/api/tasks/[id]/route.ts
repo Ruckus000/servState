@@ -1,13 +1,14 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { sql, query } from '@/lib/db';
-import { errorResponse, successResponse, createAuditLogEntry } from '@/lib/api-helpers';
+import { errorResponse, successResponse, createAuditLogEntry, requireCsrf } from '@/lib/api-helpers';
 import { taskUpdateSchema } from '@/lib/schemas';
 import type { Task } from '@/types/task';
 
 /**
  * PUT /api/tasks/[id]
  * Update task (servicer only)
+ * Security: Requires CSRF token
  */
 export async function PUT(
   request: NextRequest,
@@ -20,6 +21,12 @@ export async function PUT(
     }
 
     const { user } = session;
+
+    // CSRF protection
+    const csrfError = requireCsrf(request, user.id);
+    if (csrfError) {
+      return csrfError;
+    }
 
     // Only servicers can update tasks
     if (user.role !== 'servicer' && user.role !== 'admin') {

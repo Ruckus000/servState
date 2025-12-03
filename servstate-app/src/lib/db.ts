@@ -19,9 +19,38 @@ export async function query<T = Record<string, unknown>>(
 // Helper type for query results
 export type QueryResult<T> = T[];
 
+/**
+ * Execute multiple queries within a transaction
+ * Automatically handles commit/rollback
+ */
+export async function transaction<T>(
+  callback: (client: {
+    query: (text: string, params?: unknown[]) => Promise<{ rows: unknown[] }>;
+  }) => Promise<T>
+): Promise<T> {
+  const client = await pool.connect();
+  try {
+    await client.query('BEGIN');
+    const result = await callback(client);
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
 // Example usage:
 // Tagged template (preferred for static queries):
 // const loans = await sql`SELECT * FROM loans WHERE id = ${loanId}`;
 //
 // Dynamic queries with parameters:
 // const result = await query('UPDATE loans SET status = $1 WHERE id = $2', [status, id]);
+//
+// Transaction:
+// await transaction(async (client) => {
+//   await client.query('UPDATE users SET password_hash = $1 WHERE id = $2', [hash, id]);
+//   await client.query('UPDATE password_reset_tokens SET used = true WHERE id = $1', [tokenId]);
+// });
