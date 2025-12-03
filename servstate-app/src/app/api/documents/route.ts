@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
     }
 
     const documents = await sql`
-      SELECT * FROM documents 
+      SELECT * FROM active_documents
       WHERE loan_id = ${loanId}
       ORDER BY date DESC
     `;

@@ -31,7 +31,7 @@ export async function GET(request: NextRequest) {
     }
 
     const transactions = await sql`
-      SELECT * FROM transactions 
+      SELECT * FROM active_transactions
       WHERE loan_id = ${loanId}
       ORDER BY date DESC
     `;
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     // Check for existing transaction with this idempotency key
     const existing = await sql`
-      SELECT * FROM transactions WHERE idempotency_key = ${idempotencyKey}
+      SELECT * FROM active_transactions WHERE idempotency_key = ${idempotencyKey}
     `;
 
     if (existing.length > 0) {

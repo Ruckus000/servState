@@ -30,7 +30,7 @@ export async function GET(
 
     // Get document metadata
     const documents = await sql`
-      SELECT * FROM documents WHERE id = ${documentId}
+      SELECT * FROM active_documents WHERE id = ${documentId}
     `;
 
     if (documents.length === 0) {
