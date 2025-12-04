@@ -35,22 +35,22 @@ export function UserSelect({ value, onChange, required }: UserSelectProps) {
   });
 
   return (
-    <div className="space-y-2">
-      <Label htmlFor="user-select">
-        Assigned To {required && <span className="text-destructive">*</span>}
+    <div className="space-y-2.5">
+      <Label htmlFor="user-select" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+        Assigned To {required && <span className="text-red-500">*</span>}
       </Label>
       {isLoading ? (
-        <div className="flex items-center justify-center h-10 border rounded-md">
+        <div className="flex items-center justify-center h-11 border rounded-md bg-white dark:bg-slate-800">
           <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
         </div>
       ) : (
         <Select value={value} onValueChange={onChange}>
-          <SelectTrigger id="user-select">
+          <SelectTrigger id="user-select" className="h-11 text-base bg-white dark:bg-slate-800">
             <SelectValue placeholder="Select a user" />
           </SelectTrigger>
           <SelectContent>
             {users?.map((user) => (
-              <SelectItem key={user.id} value={user.name}>
+              <SelectItem key={user.id} value={user.id} className="text-base">
                 {user.name} ({user.email})
               </SelectItem>
             ))}
