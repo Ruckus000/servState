@@ -61,3 +61,4 @@ export async function PATCH(
     return errorResponse('Failed to update notification', 500);
   }
 }
+

@@ -63,3 +63,4 @@ export async function PATCH(
     return errorResponse('Failed to update message', 500);
   }
 }
+

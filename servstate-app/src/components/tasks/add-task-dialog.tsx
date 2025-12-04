@@ -18,7 +18,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
-import { LoanCombobox } from './loan-combobox';
+import { LoanSearchCombobox } from './loan-search-combobox';
 import { UserSelect } from './user-select';
 import { useCreateTask } from '@/hooks/use-tasks';
 import { TASK_TYPES, TASK_CATEGORIES, TASK_PRIORITIES } from '@/types/task';
@@ -111,14 +111,7 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
     onOpenChange(open);
   };
 
-  // Reset form when dialog closes
-  useEffect(() => {
-    if (!open) {
-      // Use a timeout to allow the dialog animation to complete
-      const timer = setTimeout(resetForm, 300);
-      return () => clearTimeout(timer);
-    }
-  }, [open]);
+  // No useEffect needed for form reset - handled by DialogContent onCloseAutoFocus
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -163,7 +156,16 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
 
   return (
     <Dialog open={open} onOpenChange={handleOpenChange}>
-      <DialogContent className="sm:max-w-4xl bg-slate-50/50 dark:bg-slate-900/50">
+      <DialogContent
+        className="sm:max-w-4xl bg-slate-50/50 dark:bg-slate-900/50"
+        onOpenAutoFocus={(e) => {
+          e.preventDefault();
+          // Focus naturally goes to first interactive element (combobox)
+        }}
+        onCloseAutoFocus={() => {
+          resetForm(); // Called after dialog closes and focus returns
+        }}
+      >
         <DialogHeader className="pb-6 border-b border-slate-200/60 dark:border-slate-700/60">
           <DialogTitle className="text-2xl font-semibold tracking-tight">
             Create New Task
@@ -198,7 +200,7 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
             {/* LEFT COLUMN - Primary Task Info */}
             <div className="space-y-6">
               {/* Loan Select */}
-              <LoanCombobox
+              <LoanSearchCombobox
                 value={loanId}
                 onChange={(value) => {
                   setLoanId(value);
@@ -296,7 +298,11 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
                     setIsDirty(true);
                   }}
                 >
-                  <SelectTrigger id="type-select" className="h-11 text-base bg-white dark:bg-slate-800">
+                  <SelectTrigger
+                    id="type-select"
+                    aria-required="true"
+                    className="h-11 text-base bg-white dark:bg-slate-800"
+                  >
                     <SelectValue placeholder="Select task type" />
                   </SelectTrigger>
                   <SelectContent>
@@ -321,7 +327,11 @@ export function AddTaskDialog({ open, onOpenChange }: AddTaskDialogProps) {
                     setIsDirty(true);
                   }}
                 >
-                  <SelectTrigger id="category-select" className="h-11 text-base bg-white dark:bg-slate-800">
+                  <SelectTrigger
+                    id="category-select"
+                    aria-required="true"
+                    className="h-11 text-base bg-white dark:bg-slate-800"
+                  >
                     <SelectValue placeholder="Select category" />
                   </SelectTrigger>
                   <SelectContent>

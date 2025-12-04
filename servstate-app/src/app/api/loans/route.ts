@@ -19,38 +19,72 @@ export async function GET(request: NextRequest) {
 
     const { searchParams } = new URL(request.url);
     const status = searchParams.get('status');
+    const search = searchParams.get('search');
 
     const { user } = session;
 
     let loans;
-    
+
     if (user.role === 'borrower') {
       // Borrowers can only see their own loan
+      let conditions = [sql`borrower_id = ${user.id}`];
+
       if (status) {
-        loans = await sql`
-          SELECT * FROM loans 
-          WHERE borrower_id = ${user.id} AND status = ${status}
-          ORDER BY created_at DESC
-        `;
-      } else {
-        loans = await sql`
-          SELECT * FROM loans 
-          WHERE borrower_id = ${user.id}
-          ORDER BY created_at DESC
-        `;
+        conditions.push(sql`status = ${status}`);
       }
+
+      if (search) {
+        const searchPattern = `%${search}%`;
+        conditions.push(sql`(
+          loan_number ILIKE ${searchPattern} OR
+          borrower_name ILIKE ${searchPattern} OR
+          address ILIKE ${searchPattern}
+        )`);
+      }
+
+      const whereClause = conditions.reduce((acc, cond, idx) =>
+        idx === 0 ? cond : sql`${acc} AND ${cond}`
+      );
+
+      loans = await sql`
+        SELECT * FROM loans
+        WHERE ${whereClause}
+        ORDER BY created_at DESC
+        LIMIT 50
+      `;
     } else {
       // Servicers and admins see all loans
+      let conditions = [];
+
       if (status) {
+        conditions.push(sql`status = ${status}`);
+      }
+
+      if (search) {
+        const searchPattern = `%${search}%`;
+        conditions.push(sql`(
+          loan_number ILIKE ${searchPattern} OR
+          borrower_name ILIKE ${searchPattern} OR
+          address ILIKE ${searchPattern}
+        )`);
+      }
+
+      if (conditions.length > 0) {
+        const whereClause = conditions.reduce((acc, cond, idx) =>
+          idx === 0 ? cond : sql`${acc} AND ${cond}`
+        );
+
         loans = await sql`
-          SELECT * FROM loans 
-          WHERE status = ${status}
+          SELECT * FROM loans
+          WHERE ${whereClause}
           ORDER BY created_at DESC
+          LIMIT 50
         `;
       } else {
         loans = await sql`
-          SELECT * FROM loans 
+          SELECT * FROM loans
           ORDER BY created_at DESC
+          LIMIT 50
         `;
       }
     }

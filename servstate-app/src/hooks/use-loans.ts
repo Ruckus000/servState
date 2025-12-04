@@ -44,3 +44,25 @@ export function useUpdateLoan() {
     },
   });
 }
+
+/**
+ * Search loans with debounced server-side filtering
+ * @param search - Search query string (empty string shows recent loans)
+ * @param status - Optional status filter
+ * @param enabled - Whether to enable the query (default: true)
+ */
+export function useSearchLoans(search: string, status?: string, enabled: boolean = true) {
+  const params = new URLSearchParams();
+  if (status) params.append('status', status);
+  if (search) params.append('search', search);
+
+  return useQuery({
+    queryKey: ['loans', 'search', search, status],
+    queryFn: async () => {
+      return api.get<Loan[]>(`/api/loans?${params}`);
+    },
+    enabled: enabled, // Caller controls when to fetch
+    staleTime: 30000, // Cache for 30 seconds
+  });
+}
+
