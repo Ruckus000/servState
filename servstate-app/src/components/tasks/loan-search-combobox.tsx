@@ -25,6 +25,7 @@ interface LoanSearchComboboxProps {
   value: string;
   onChange: (value: string) => void;
   required?: boolean;
+  hideLabel?: boolean;
 }
 
 interface Loan {
@@ -38,6 +39,7 @@ export function LoanSearchCombobox({
   value,
   onChange,
   required,
+  hideLabel,
 }: LoanSearchComboboxProps) {
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -53,13 +55,15 @@ export function LoanSearchCombobox({
   const selectedLoan = loans?.find((loan) => loan.id === value);
 
   return (
-    <div className="space-y-2.5">
-      <Label
-        htmlFor="loan-combobox"
-        className="text-sm font-medium text-slate-700 dark:text-slate-300"
-      >
-        Loan {required && <span className="text-red-500">*</span>}
-      </Label>
+    <div className={cn(!hideLabel && 'space-y-2.5')}>
+      {!hideLabel && (
+        <Label
+          htmlFor="loan-combobox"
+          className="text-sm font-medium text-slate-700 dark:text-slate-300"
+        >
+          Loan {required && <span className="text-red-500">*</span>}
+        </Label>
+      )}
 
       <Popover open={open} onOpenChange={setOpen}>
         <PopoverTrigger asChild>
@@ -69,7 +73,12 @@ export function LoanSearchCombobox({
             role="combobox"
             aria-expanded={open}
             aria-required={required}
-            className="w-full justify-between h-11 text-base bg-white dark:bg-slate-800"
+            className={cn(
+              'w-full justify-between',
+              hideLabel
+                ? 'h-9 text-sm bg-gray-50 border-gray-200 hover:border-gray-300 focus:bg-white focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 dark:bg-gray-800 dark:border-gray-700'
+                : 'h-11 text-base bg-white dark:bg-slate-800'
+            )}
           >
             {selectedLoan ? (
               <span className="truncate">

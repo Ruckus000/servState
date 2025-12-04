@@ -8,11 +8,13 @@ import {
 } from '@/components/ui/select';
 import { Label } from '@/components/ui/label';
 import { Loader2 } from 'lucide-react';
+import { cn } from '@/lib/utils';
 
 interface UserSelectProps {
   value: string;
   onChange: (value: string) => void;
   required?: boolean;
+  hideLabel?: boolean;
 }
 
 interface User {
@@ -28,29 +30,40 @@ async function fetchUsers(): Promise<User[]> {
   return response.json();
 }
 
-export function UserSelect({ value, onChange, required }: UserSelectProps) {
+export function UserSelect({ value, onChange, required, hideLabel }: UserSelectProps) {
   const { data: users, isLoading } = useQuery({
     queryKey: ['users'],
     queryFn: fetchUsers,
   });
 
+  const triggerClassName = hideLabel
+    ? 'h-9 text-sm bg-gray-50 border-gray-200 hover:border-gray-300 focus:bg-white focus:border-teal-500 focus:ring-2 focus:ring-teal-500/20 dark:bg-gray-800 dark:border-gray-700'
+    : 'h-11 text-base bg-white dark:bg-slate-800';
+
   return (
-    <div className="space-y-2.5">
-      <Label htmlFor="user-select" className="text-sm font-medium text-slate-700 dark:text-slate-300">
-        Assigned To {required && <span className="text-red-500">*</span>}
-      </Label>
+    <div className={cn(!hideLabel && 'space-y-2.5')}>
+      {!hideLabel && (
+        <Label htmlFor="user-select" className="text-sm font-medium text-slate-700 dark:text-slate-300">
+          Assigned To {required && <span className="text-red-500">*</span>}
+        </Label>
+      )}
       {isLoading ? (
-        <div className="flex items-center justify-center h-11 border rounded-md bg-white dark:bg-slate-800">
+        <div className={cn(
+          'flex items-center justify-center border rounded-md',
+          hideLabel
+            ? 'h-9 bg-gray-50 border-gray-200 dark:bg-gray-800 dark:border-gray-700'
+            : 'h-11 bg-white dark:bg-slate-800'
+        )}>
           <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
         </div>
       ) : (
         <Select value={value} onValueChange={onChange}>
-          <SelectTrigger id="user-select" className="h-11 text-base bg-white dark:bg-slate-800">
+          <SelectTrigger id="user-select" className={triggerClassName}>
             <SelectValue placeholder="Select a user" />
           </SelectTrigger>
           <SelectContent>
             {users?.map((user) => (
-              <SelectItem key={user.id} value={user.id} className="text-base">
+              <SelectItem key={user.id} value={user.id} className={hideLabel ? 'text-sm' : 'text-base'}>
                 {user.name} ({user.email})
               </SelectItem>
             ))}
