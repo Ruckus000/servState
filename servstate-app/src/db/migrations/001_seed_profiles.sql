@@ -6,26 +6,17 @@
 -- Step 1: Update users with password hashes
 -- ============================================
 -- All users have password: "password123" (bcrypt hashed with cost 10)
+-- Hash generated via PostgreSQL: crypt('password123', gen_salt('bf', 10))
 
 UPDATE users
-SET password_hash = '$2a$10$N9qo8uLOickgx2ZMRZoMye/IcZEN4f/FKH7lqZnKgV3nPKFVdZP.q'
-WHERE email = 'j.anderson@example.com';
-
-UPDATE users
-SET password_hash = '$2a$10$vI8aWBnW3f1dO1wGFvkZceOXH6xmTvLQ8RzXQCxZ8xK7mXZ.4P0vC'
-WHERE email = 'm.chen@example.com';
-
-UPDATE users
-SET password_hash = '$2a$10$h2Zq5fF6xKJ7YnKzQ9XwZeYnKzQ9XwZeYnKzQ9XwZeYnKzQ9XwZe'
-WHERE email = 's.williams@example.com';
-
-UPDATE users
-SET password_hash = '$2a$10$rT4uF8kL3pD9wNmQ1rYxXeYnKzQ9XwZeYnKzQ9XwZeYnKzQ9XwZe'
-WHERE email = 'r.garcia@example.com';
-
-UPDATE users
-SET password_hash = '$2a$10$adminHashForServStateUserAccountPasswordHere123456'
-WHERE email = 'admin@servstate.com';
+SET password_hash = '$2a$10$ZEDx1lF9J.Qm0eUM.riQaONFJyfmI1CD/XA.jLWMI/YTLJ3J7KRe6'
+WHERE email IN (
+  'j.anderson@example.com',
+  'm.chen@example.com',
+  's.williams@example.com',
+  'r.garcia@example.com',
+  'admin@servstate.com'
+);
 
 -- ============================================
 -- Step 2: Create user profiles for borrowers
