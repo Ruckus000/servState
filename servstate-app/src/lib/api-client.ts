@@ -11,7 +11,7 @@ const CSRF_TOKEN_TTL = 5 * 60 * 1000; // 5 minutes
  * Fetch a fresh CSRF token from the server
  */
 async function fetchCsrfToken(): Promise<string> {
-  const response = await fetch('/api/auth/csrf');
+  const response = await fetch('/api/csrf');
   if (!response.ok) {
     throw new Error('Failed to fetch CSRF token');
   }
