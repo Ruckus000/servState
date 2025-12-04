@@ -22,14 +22,48 @@ export default function LoginPage() {
     setIsLoading(true);
 
     try {
+      // DEBUG: First test with debug endpoint
+      const debugRes = await fetch('/api/auth/debug', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password }),
+      });
+      const debugData = await debugRes.json();
+      console.log('Debug result:', debugData);
+
+      if (!debugData.success) {
+        if (debugData.error === 'USER_NOT_FOUND') {
+          toast.error(`User not found: ${email}`);
+        } else if (debugData.error === 'NO_PASSWORD_HASH') {
+          toast.error('User has no password set');
+        } else if (debugData.debug?.bcryptResult === false) {
+          toast.error('Invalid password (bcrypt mismatch)');
+        } else {
+          toast.error(`Debug: ${debugData.error || debugData.message}`);
+        }
+        setIsLoading(false);
+        return;
+      }
+
+      // If debug passed, try actual signIn
       const result = await signIn('credentials', {
         email,
         password,
         redirect: false,
       });
 
+      // DEBUG: Show detailed error info
+      console.log('SignIn result:', result);
+
       if (result?.error) {
-        toast.error('Invalid email or password');
+        // Show detailed error for debugging
+        toast.error(`Auth failed: ${result.error} (Status: ${result.status})`);
+        setIsLoading(false);
+        return;
+      }
+
+      if (!result?.ok) {
+        toast.error(`Login failed: ok=${result?.ok}, status=${result?.status}`);
         setIsLoading(false);
         return;
       }

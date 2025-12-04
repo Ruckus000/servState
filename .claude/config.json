@@ -1,0 +1,13 @@
+{
+  "mcpServers": {
+    "neon": {
+      "command": "npx",
+      "args": ["-y", "neon-mcp-server"],
+      "env": {
+        "DATABASE_URL": "postgresql://neondb_owner:npg_JQAZ8rL6EBke@ep-soft-glade-adx8f09f-pooler.c-2.us-east-1.aws.neon.tech/neondb?sslmode=require"
+
+      },
+      "disabled": false
+    }
+  }
+}
