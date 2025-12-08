@@ -2,20 +2,23 @@
 
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { ArrowLeft, Phone, Mail, MapPin, Calendar, DollarSign, Percent, CreditCard, Loader2 } from 'lucide-react';
+import { ArrowLeft, Phone, Mail, MapPin, Calendar, DollarSign, Percent, CreditCard, Loader2, Pencil } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { Separator } from '@/components/ui/separator';
 import { Progress } from '@/components/ui/progress';
 import { PageHeader } from '@/components/shared/page-header';
-import { DataTable, type Column } from '@/components/shared/data-table';
 import { PaymentDialog } from '@/components/payments/payment-dialog';
 import { AuditLogTable } from '@/components/audit/audit-log-table';
 import { DocumentUploadZone } from '@/components/documents/DocumentUploadZone';
 import { DocumentList } from '@/components/documents/DocumentList';
 import { CorrespondenceList } from '@/components/correspondence/correspondence-list';
+import { EscrowInfoCard } from '@/components/loans/escrow-info-card';
+import { EditLoanModal } from '@/components/loans/edit-loan-modal';
+import { GenerateDocumentDropdown } from '@/components/loans/generate-document-dropdown';
+import { PayoffModal } from '@/components/documents/payoff-modal';
+import { PaymentHistoryModal } from '@/components/documents/payment-history-modal';
 import { useLoan } from '@/hooks/use-loans';
 import { useTransactions } from '@/hooks/use-transactions';
 import { useDocuments } from '@/hooks/use-documents';
@@ -24,8 +27,7 @@ import { useMessages } from '@/hooks/use-messages';
 import { useCorrespondence } from '@/hooks/use-correspondence';
 import { useTasks } from '@/hooks/use-tasks';
 import { useAuditLog } from '@/hooks/use-audit-log';
-import { formatCurrency, formatPercent, formatDate, formatDateTime, formatPhone, formatDuration } from '@/lib/format';
-import type { Transaction, Document, Note, Message, Correspondence, Modification, Task } from '@/types';
+import { formatCurrency, formatPercent, formatDate, formatDateTime, formatPhone } from '@/lib/format';
 
 export default function LoanDetailPage() {
   const params = useParams();
@@ -33,6 +35,9 @@ export default function LoanDetailPage() {
   const loanId = params.id as string;
   const [paymentDialogOpen, setPaymentDialogOpen] = useState(false);
   const [showUpload, setShowUpload] = useState(false);
+  const [editModalOpen, setEditModalOpen] = useState(false);
+  const [payoffModalOpen, setPayoffModalOpen] = useState(false);
+  const [historyModalOpen, setHistoryModalOpen] = useState(false);
 
   // Fetch all data via hooks (server-side filtered by loanId)
   const { data: loan, isLoading: loanLoading, error: loanError } = useLoan(loanId);
@@ -89,16 +94,37 @@ export default function LoanDetailPage() {
             </Badge>
           </PageHeader>
         </div>
-        <Button onClick={() => setPaymentDialogOpen(true)}>
-          <CreditCard className="mr-2 h-4 w-4" />
-          Make Payment
-        </Button>
+        <div className="flex items-center gap-2">
+          <GenerateDocumentDropdown
+            onSelectPayoff={() => setPayoffModalOpen(true)}
+            onSelectHistory={() => setHistoryModalOpen(true)}
+          />
+          <Button onClick={() => setPaymentDialogOpen(true)}>
+            <CreditCard className="mr-2 h-4 w-4" />
+            Make Payment
+          </Button>
+        </div>
       </div>
 
-      {/* Payment Dialog */}
+      {/* Dialogs/Modals */}
       <PaymentDialog
         open={paymentDialogOpen}
         onOpenChange={setPaymentDialogOpen}
+        loan={loan}
+      />
+      <EditLoanModal
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        loan={loan}
+      />
+      <PayoffModal
+        open={payoffModalOpen}
+        onOpenChange={setPayoffModalOpen}
+        loan={loan}
+      />
+      <PaymentHistoryModal
+        open={historyModalOpen}
+        onOpenChange={setHistoryModalOpen}
         loan={loan}
       />
 
@@ -160,19 +186,30 @@ export default function LoanDetailPage() {
 
       {/* Tabs */}
       <Tabs defaultValue="overview" className="space-y-4">
-        <TabsList>
-          <TabsTrigger value="overview">Overview</TabsTrigger>
-          <TabsTrigger value="history">History ({transactions.length})</TabsTrigger>
-          <TabsTrigger value="messages">Messages ({messages.length})</TabsTrigger>
-          <TabsTrigger value="correspondence">Correspondence ({correspondence.length})</TabsTrigger>
-          <TabsTrigger value="documents">Documents ({documents.length})</TabsTrigger>
-          <TabsTrigger value="notes">Notes ({notes.length})</TabsTrigger>
-          <TabsTrigger value="tasks">Tasks ({tasks.length})</TabsTrigger>
-          <TabsTrigger value="actions-log">Actions Log ({auditLog.length})</TabsTrigger>
-        </TabsList>
+        <div className="flex items-center justify-between border-b">
+          <TabsList className="border-0">
+            <TabsTrigger value="overview">Overview</TabsTrigger>
+            <TabsTrigger value="history">History ({transactions.length})</TabsTrigger>
+            <TabsTrigger value="messages">Messages ({messages.length})</TabsTrigger>
+            <TabsTrigger value="correspondence">Correspondence ({correspondence.length})</TabsTrigger>
+            <TabsTrigger value="documents">Documents ({documents.length})</TabsTrigger>
+            <TabsTrigger value="notes">Notes ({notes.length})</TabsTrigger>
+            <TabsTrigger value="tasks">Tasks ({tasks.length})</TabsTrigger>
+            <TabsTrigger value="actions-log">Actions Log ({auditLog.length})</TabsTrigger>
+          </TabsList>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setEditModalOpen(true)}
+            className="text-gray-600 hover:text-gray-900 hover:bg-gray-100"
+          >
+            <Pencil className="w-4 h-4 mr-2" />
+            Edit Loan
+          </Button>
+        </div>
 
         <TabsContent value="overview" className="space-y-6">
-          <div className="grid gap-6 lg:grid-cols-2">
+          <div className="grid gap-6 lg:grid-cols-3">
             {/* Borrower Info */}
             <Card>
               <CardHeader>
@@ -193,6 +230,9 @@ export default function LoanDetailPage() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Escrow Information */}
+            <EscrowInfoCard loan={loan} />
 
             {/* Loan Progress */}
             <Card>
@@ -219,10 +259,6 @@ export default function LoanDetailPage() {
                   <div>
                     <p className="text-muted-foreground">Payments Made</p>
                     <p className="font-medium">{loan.payments_made} of {loan.term_months}</p>
-                  </div>
-                  <div>
-                    <p className="text-muted-foreground">Escrow Balance</p>
-                    <p className="font-medium">{formatCurrency(loan.escrow_balance)}</p>
                   </div>
                 </div>
               </CardContent>

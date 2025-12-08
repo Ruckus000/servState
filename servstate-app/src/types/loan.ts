@@ -22,6 +22,12 @@ export interface Loan {
   origination_date: string;
   term_months: number;
   payments_made: number;
+  // Escrow fields
+  property_tax_annual: number | null;
+  property_tax_exempt: boolean;
+  hoi_annual: number | null;
+  hoi_policy_number: string | null;
+  hoi_expiration_date: string | null;
 }
 
 export interface AmortizationEntry {

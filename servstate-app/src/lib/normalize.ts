@@ -17,5 +17,11 @@ export function normalizeLoan(row: Record<string, unknown>): Loan {
     days_past_due: row.days_past_due ? Number(row.days_past_due) : 0,
     term_months: Number(row.term_months),
     payments_made: Number(row.payments_made),
+    // Escrow fields (nullable)
+    property_tax_annual: row.property_tax_annual != null ? Number(row.property_tax_annual) : null,
+    property_tax_exempt: Boolean(row.property_tax_exempt),
+    hoi_annual: row.hoi_annual != null ? Number(row.hoi_annual) : null,
+    hoi_policy_number: row.hoi_policy_number as string | null,
+    hoi_expiration_date: row.hoi_expiration_date as string | null,
   } as Loan;
 }

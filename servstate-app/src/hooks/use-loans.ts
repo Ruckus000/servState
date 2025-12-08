@@ -17,6 +17,10 @@ async function updateLoan(id: string, data: Partial<Loan>): Promise<Loan> {
   return api.put<Loan>(`/api/loans/${id}`, data);
 }
 
+async function patchLoan(id: string, data: Partial<Loan>): Promise<Loan> {
+  return api.patch<Loan>(`/api/loans/${id}`, data);
+}
+
 export function useLoans(status?: string) {
   return useQuery({
     queryKey: ['loans', status],
@@ -45,6 +49,19 @@ export function useUpdateLoan() {
   });
 }
 
+export function usePatchLoan() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: ({ id, data }: { id: string; data: Partial<Loan> }) =>
+      patchLoan(id, data),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ['loans'] });
+      queryClient.invalidateQueries({ queryKey: ['loans', variables.id] });
+    },
+  });
+}
+
 /**
  * Search loans with debounced server-side filtering
  * @param search - Search query string (empty string shows recent loans)
@@ -65,4 +82,7 @@ export function useSearchLoans(search: string, status?: string, enabled: boolean
     staleTime: 30000, // Cache for 30 seconds
   });
 }
+
+
+
 

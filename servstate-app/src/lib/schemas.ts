@@ -10,6 +10,16 @@ export const loanUpdateSchema = z.object({
   monthly_escrow: z.number().min(0).optional(),
   escrow_balance: z.number().optional(),
   next_due_date: z.string().optional(),
+  // Borrower contact fields
+  email: z.string().email().optional(),
+  phone: z.string().min(10).max(20).optional(),
+  address: z.string().min(1).max(500).optional(),
+  // Escrow/tax/insurance fields
+  property_tax_annual: z.number().min(0).nullable().optional(),
+  property_tax_exempt: z.boolean().optional(),
+  hoi_annual: z.number().min(0).nullable().optional(),
+  hoi_policy_number: z.string().max(100).nullable().optional(),
+  hoi_expiration_date: z.string().nullable().optional(),
 });
 
 export const transactionCreateSchema = z.object({
@@ -137,6 +147,9 @@ export const correspondenceCreateSchema = z.object({
   duration: z.number().int().min(0).optional(), // seconds for calls
   notes: z.string().optional(),
 });
+
+
+
 
 
 
