@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatCurrency } from '@/lib/format';
+import { api } from '@/lib/api-client';
 import type { Loan } from '@/types/loan';
 
 interface PayoffModalProps {
@@ -42,19 +43,10 @@ export function PayoffModal({ open, onOpenChange, loan }: PayoffModalProps) {
     setIsGenerating(true);
 
     try {
-      const response = await fetch(`/api/loans/${loan.id}/documents/payoff`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ goodThroughDate }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(error.error || 'Failed to generate PDF');
-      }
+      // Use centralized API client with CSRF token handling
+      const blob = await api.postBlob(`/api/loans/${loan.id}/documents/payoff`, { goodThroughDate });
 
       // Download the PDF
-      const blob = await response.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;

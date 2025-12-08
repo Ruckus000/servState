@@ -139,6 +139,49 @@ export async function apiRequest<T = unknown>(
 }
 
 /**
+ * POST request that returns a Blob (for binary downloads like PDFs)
+ * Includes CSRF token handling with one retry on 403
+ */
+async function apiBlobRequest(url: string, body?: unknown): Promise<Blob> {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  // Add CSRF token
+  const token = await getCsrfToken();
+  headers['x-csrf-token'] = token;
+
+  let response = await fetch(url, {
+    method: 'POST',
+    headers,
+    body: body ? JSON.stringify(body) : undefined,
+  });
+
+  // Handle CSRF token expiry - retry once
+  if (response.status === 403) {
+    const data = await response.json().catch(() => ({}));
+    if (data.error?.includes('CSRF')) {
+      clearCsrfToken();
+      const newToken = await getCsrfToken();
+      headers['x-csrf-token'] = newToken;
+
+      response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: body ? JSON.stringify(body) : undefined,
+      });
+    }
+  }
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({}));
+    throw new Error(data.error || 'Request failed');
+  }
+
+  return response.blob();
+}
+
+/**
  * Convenience methods for common HTTP verbs
  */
 export const api = {
@@ -156,4 +199,7 @@ export const api = {
 
   delete: <T>(url: string, options?: Omit<ApiRequestOptions, 'method' | 'body'>) =>
     apiRequest<T>(url, { ...options, method: 'DELETE' }),
+
+  /** POST request returning Blob for binary downloads (PDFs, etc.) */
+  postBlob: (url: string, body?: unknown) => apiBlobRequest(url, body),
 };
