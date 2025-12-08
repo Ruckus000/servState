@@ -148,9 +148,23 @@ export const correspondenceCreateSchema = z.object({
   notes: z.string().optional(),
 });
 
-
-
-
+export const companySettingsUpdateSchema = z.object({
+  company_name: z.string().min(1, 'Company name is required').max(255),
+  company_tagline: z.string().max(255).nullable().optional(),
+  contact_email: z.string().email('Invalid email address').max(255),
+  contact_phone: z.string().min(10, 'Phone number too short').max(50),
+  wire_bank_name: z.string().max(255).nullable().optional(),
+  wire_routing_number: z
+    .string()
+    .regex(/^\d{9}$/, 'Routing number must be exactly 9 digits')
+    .nullable()
+    .optional()
+    .or(z.literal('')),
+  wire_account_number: z.string().max(50).nullable().optional(),
+  wire_account_name: z.string().max(255).nullable().optional(),
+  fee_recording: z.number().min(0, 'Fee cannot be negative').max(10000),
+  fee_payoff_processing: z.number().min(0, 'Fee cannot be negative').max(10000),
+});
 
 
 

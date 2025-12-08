@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { FileText, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -13,7 +14,7 @@ import {
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { formatCurrency, formatDate } from '@/lib/format';
+import { formatCurrency } from '@/lib/format';
 import type { Loan } from '@/types/loan';
 
 interface PayoffModalProps {
@@ -40,23 +41,43 @@ export function PayoffModal({ open, onOpenChange, loan }: PayoffModalProps) {
   const handleGenerate = async () => {
     setIsGenerating(true);
 
-    // TODO: Implement actual PDF generation
-    // This would call an API endpoint to generate the payoff statement
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      const response = await fetch(`/api/loans/${loan.id}/documents/payoff`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ goodThroughDate }),
+      });
 
-    setIsGenerating(false);
-    // For now, just show a message that generation is not yet implemented
-    alert('PDF generation not yet implemented. Good through date: ' + goodThroughDate);
-    onOpenChange(false);
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(error.error || 'Failed to generate PDF');
+      }
+
+      // Download the PDF
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `payoff-${loan.loan_number}-${goodThroughDate}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success('Payoff statement generated successfully');
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error generating payoff statement:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to generate payoff statement');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleClose = () => {
     setGoodThroughDate(defaultGoodThroughDate);
     onOpenChange(false);
   };
-
-  // Calculate estimated payoff amount (simplified calculation)
-  const estimatedPayoff = loan.current_principal; // In reality, would include accrued interest, fees, etc.
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>

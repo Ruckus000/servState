@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { History, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
 import {
   Dialog,
   DialogContent,
@@ -65,13 +66,37 @@ export function PaymentHistoryModal({ open, onOpenChange, loan }: PaymentHistory
   const handleGenerate = async () => {
     setIsGenerating(true);
 
-    // TODO: Implement actual PDF generation
-    await new Promise(resolve => setTimeout(resolve, 1500));
+    try {
+      const response = await fetch(`/api/loans/${loan.id}/documents/history`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ fromDate, toDate }),
+      });
 
-    setIsGenerating(false);
-    // For now, just show a message that generation is not yet implemented
-    alert(`PDF generation not yet implemented.\nFrom: ${fromDate}\nTo: ${toDate}`);
-    onOpenChange(false);
+      if (!response.ok) {
+        const error = await response.json().catch(() => ({ error: 'Unknown error' }));
+        throw new Error(error.error || 'Failed to generate PDF');
+      }
+
+      // Download the PDF
+      const blob = await response.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `payment-history-${loan.loan_number}-${fromDate}-to-${toDate}.pdf`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+
+      toast.success('Payment history generated successfully');
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error generating payment history:', error);
+      toast.error(error instanceof Error ? error.message : 'Failed to generate payment history');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleClose = () => {

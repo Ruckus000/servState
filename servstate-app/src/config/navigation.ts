@@ -35,5 +35,6 @@ export const servicerNavItems: NavItem[] = [
     // Badge will be dynamically set based on pending tasks count
   },
   { id: 'reports', label: 'Reports', icon: 'BarChart2', href: '/servicer/reports' },
+  { id: 'admin-settings', label: 'Admin Settings', icon: 'Settings', href: '/servicer/admin/settings' },
   { id: 'notifications', label: 'Notifications', icon: 'Bell', href: '/servicer/notifications' },
 ];
