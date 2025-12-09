@@ -1,13 +1,17 @@
 import { randomBytes, createHmac, timingSafeEqual } from 'crypto';
 
-const CSRF_SECRET = process.env.NEXTAUTH_SECRET;
-
-if (!CSRF_SECRET) {
-  throw new Error(
-    'NEXTAUTH_SECRET environment variable is not set. ' +
-    'Generate one with: openssl rand -base64 32'
-  );
+function getSecret(): string {
+  const secret = process.env.NEXTAUTH_SECRET;
+  if (!secret) {
+    throw new Error(
+      'NEXTAUTH_SECRET environment variable is not set. ' +
+      'Generate one with: openssl rand -base64 32'
+    );
+  }
+  return secret;
 }
+
+const CSRF_SECRET = getSecret();
 
 /**
  * Generate a CSRF token tied to a session ID
