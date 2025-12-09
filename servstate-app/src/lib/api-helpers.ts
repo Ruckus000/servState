@@ -44,41 +44,9 @@ export async function validateLoanAccess(
 
 /**
  * Create an audit log entry
+ * @deprecated Use logAudit from '@/lib/audit' instead for type safety and validation
  */
-export async function createAuditLogEntry(params: {
-  loanId: string | null;
-  actionType: string;
-  category: string;
-  description: string;
-  performedBy: string;
-  details?: Record<string, any>;
-  referenceId?: string;
-}) {
-  try {
-    await sql`
-      INSERT INTO audit_log (
-        loan_id,
-        action_type,
-        category,
-        description,
-        performed_by,
-        details,
-        reference_id
-      ) VALUES (
-        ${params.loanId},
-        ${params.actionType},
-        ${params.category},
-        ${params.description},
-        ${params.performedBy},
-        ${params.details ? JSON.stringify(params.details) : null},
-        ${params.referenceId || null}
-      )
-    `;
-  } catch (error) {
-    console.error('Failed to create audit log entry:', error);
-    // Don't throw - audit logging failures shouldn't break the main operation
-  }
-}
+export { logAudit as createAuditLogEntry, logAudit, computeChangedFields } from './audit';
 
 /**
  * Validate CSRF token from request headers

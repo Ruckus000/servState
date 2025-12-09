@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { sql } from '@/lib/db';
-import { errorResponse, successResponse, validateLoanAccess, createAuditLogEntry, requireCsrf } from '@/lib/api-helpers';
+import { errorResponse, successResponse, validateLoanAccess, requireCsrf } from '@/lib/api-helpers';
+import { logAudit } from '@/lib/audit';
 import { documentUploadSchema } from '@/lib/schemas';
 import {
   generateDocumentKey,
@@ -153,11 +154,10 @@ export async function POST(request: NextRequest) {
 
     const document = result[0];
 
-    // Create audit log entry
-    await createAuditLogEntry({
+    // Create audit log entry (category auto-derived as 'document')
+    await logAudit({
       loanId: loan_id,
       actionType: 'document_upload_initiated',
-      category: 'document',
       description: `Document upload initiated: ${name}`,
       performedBy: user.name,
       details: {

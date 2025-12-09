@@ -5,26 +5,28 @@ import { sql } from './db';
 import type { UserRole } from '@/types';
 import { authConfig } from './auth.config';
 import { checkAuthRateLimit, getClientIp } from './rate-limit';
-import { createAuditLogEntry } from './api-helpers';
+import { logAudit } from './audit';
+import type { AuditActionType } from '@/types/audit-log';
 
 /**
  * Log authentication events to the audit log
  */
 async function logAuthEvent(
-  eventType: 'LOGIN_SUCCESS' | 'LOGIN_FAILED' | 'LOGOUT',
+  eventType: 'login_success' | 'login_failed' | 'logout',
   userId: string | null,
   email: string,
   ip: string,
   details?: Record<string, unknown>
 ) {
   try {
-    await createAuditLogEntry({
+    await logAudit({
       loanId: null,
-      actionType: eventType,
-      category: 'SECURITY',
-      description: `${eventType.replace('_', ' ').toLowerCase()} for ${email}`,
+      actionType: eventType as AuditActionType,
+      // category auto-derived as 'security'
+      description: `${eventType.replace(/_/g, ' ')} for ${email}`,
       performedBy: userId || 'anonymous',
-      details: { ip, email, ...details },
+      ipAddress: ip,
+      details: { email, ...details },
     });
   } catch (error) {
     // Don't fail auth if audit logging fails
@@ -58,7 +60,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           if (!success) {
             const retryAfter = Math.ceil((reset - Date.now()) / 1000);
             console.warn(`Rate limit exceeded for IP: ${ip}. Retry after ${retryAfter}s`);
-            await logAuthEvent('LOGIN_FAILED', null, email, ip, {
+            await logAuthEvent('login_failed', null, email, ip, {
               reason: 'rate_limit_exceeded',
             });
             throw new Error(`Too many login attempts. Please try again in ${retryAfter} seconds.`);
@@ -72,7 +74,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           `;
 
           if (users.length === 0) {
-            await logAuthEvent('LOGIN_FAILED', null, email, ip, {
+            await logAuthEvent('login_failed', null, email, ip, {
               reason: 'user_not_found',
             });
             return null;
@@ -87,14 +89,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           );
 
           if (!isValidPassword) {
-            await logAuthEvent('LOGIN_FAILED', user.id, email, ip, {
+            await logAuthEvent('login_failed', user.id, email, ip, {
               reason: 'invalid_password',
             });
             return null;
           }
 
           // Log successful login
-          await logAuthEvent('LOGIN_SUCCESS', user.id, email, ip);
+          await logAuthEvent('login_success', user.id, email, ip);
 
           // Return user object (without password_hash)
           return {
@@ -121,7 +123,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
       if ('token' in message && message.token?.email) {
         const email = message.token.email as string;
         const userId = message.token.id as string;
-        await logAuthEvent('LOGOUT', userId, email, 'unknown');
+        await logAuthEvent('logout', userId, email, 'unknown');
       }
     },
   },

@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { sql } from '@/lib/db';
-import { errorResponse, successResponse, createAuditLogEntry, validateLoanAccess, requireCsrf } from '@/lib/api-helpers';
+import { errorResponse, successResponse, validateLoanAccess, requireCsrf } from '@/lib/api-helpers';
+import { logAudit } from '@/lib/audit';
 import { noteCreateSchema } from '@/lib/schemas';
 
 /**
@@ -110,11 +111,10 @@ export async function POST(request: NextRequest) {
 
     const note = result[0];
 
-    // Create audit log entry
-    await createAuditLogEntry({
+    // Create audit log entry (category auto-derived as 'internal')
+    await logAudit({
       loanId: data.loan_id,
       actionType: 'note_created',
-      category: 'documentation',
       description: `Note added: ${data.type}`,
       performedBy: user.name,
       details: {

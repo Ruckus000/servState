@@ -58,12 +58,30 @@ export type AuditActionType =
   | 'collections_assigned'
   // Internal
   | 'note_added'
+  | 'note_created' // Alias for backward compat
   | 'task_created'
   | 'task_completed'
   | 'task_status_changed'
   | 'task_assigned'
   | 'task_updated'
-  | 'status_change';
+  | 'status_change'
+  // Security/Auth
+  | 'login_success'
+  | 'login_failed'
+  | 'logout'
+  | 'password_reset_requested'
+  | 'password_reset_completed'
+  // Admin
+  | 'company_settings_updated'
+  // Extended document actions
+  | 'document_upload_initiated'
+  | 'document_upload_completed'
+  | 'document_accessed'
+  // Extended communication
+  | 'message_sent'
+  // Extended lifecycle
+  | 'loan_updated'
+  | 'transaction_created';
 
 export type AuditActionCategory =
   | 'payment'
@@ -75,7 +93,8 @@ export type AuditActionCategory =
   | 'compliance'
   | 'insurance'
   | 'collections'
-  | 'internal';
+  | 'internal'
+  | 'security';
 
 export interface AuditLogEntry {
   id: string;
@@ -142,12 +161,30 @@ export function getActionCategory(actionType: AuditActionType): AuditActionCateg
     payment_plan_cancelled: 'collections',
     collections_assigned: 'collections',
     note_added: 'internal',
+    note_created: 'internal',
     task_created: 'internal',
     task_completed: 'internal',
     task_status_changed: 'internal',
     task_assigned: 'internal',
     task_updated: 'internal',
     status_change: 'internal',
+    // Security/Auth
+    login_success: 'security',
+    login_failed: 'security',
+    logout: 'security',
+    password_reset_requested: 'security',
+    password_reset_completed: 'security',
+    // Admin
+    company_settings_updated: 'internal',
+    // Extended document actions
+    document_upload_initiated: 'document',
+    document_upload_completed: 'document',
+    document_accessed: 'document',
+    // Extended communication
+    message_sent: 'communication',
+    // Extended lifecycle
+    loan_updated: 'lifecycle',
+    transaction_created: 'payment',
   };
   return categoryMap[actionType];
 }
@@ -203,12 +240,30 @@ export const actionTypeLabels: Record<AuditActionType, string> = {
   payment_plan_cancelled: 'Payment Plan Cancelled',
   collections_assigned: 'Collections Assigned',
   note_added: 'Note Added',
+  note_created: 'Note Created',
   task_created: 'Task Created',
   task_completed: 'Task Completed',
   task_status_changed: 'Task Status Changed',
   task_assigned: 'Task Assigned',
   task_updated: 'Task Updated',
   status_change: 'Status Change',
+  // Security/Auth
+  login_success: 'Login Success',
+  login_failed: 'Login Failed',
+  logout: 'Logout',
+  password_reset_requested: 'Password Reset Requested',
+  password_reset_completed: 'Password Reset Completed',
+  // Admin
+  company_settings_updated: 'Company Settings Updated',
+  // Extended document actions
+  document_upload_initiated: 'Document Upload Initiated',
+  document_upload_completed: 'Document Upload Completed',
+  document_accessed: 'Document Accessed',
+  // Extended communication
+  message_sent: 'Message Sent',
+  // Extended lifecycle
+  loan_updated: 'Loan Updated',
+  transaction_created: 'Transaction Created',
 };
 
 export const categoryLabels: Record<AuditActionCategory, string> = {
@@ -222,4 +277,5 @@ export const categoryLabels: Record<AuditActionCategory, string> = {
   insurance: 'Insurance',
   collections: 'Collections',
   internal: 'Internal',
+  security: 'Security',
 };

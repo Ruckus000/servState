@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { sql } from '@/lib/db';
-import { errorResponse, successResponse, createAuditLogEntry, requireCsrf } from '@/lib/api-helpers';
+import { errorResponse, successResponse, requireCsrf } from '@/lib/api-helpers';
+import { logAudit, computeChangedFields } from '@/lib/audit';
 import { invalidateConfigCache } from '@/lib/company-config';
 import { companySettingsUpdateSchema } from '@/lib/schemas';
 import type { CompanySettings } from '@/types/company-settings';
@@ -133,44 +134,33 @@ export async function PUT(request: NextRequest) {
     // Invalidate cache
     invalidateConfigCache();
 
-    // Calculate changed fields for audit log
-    const changedFields: string[] = [];
-    if (existingSettings) {
-      if (existingSettings.company_name !== data.company_name) changedFields.push('company_name');
-      if (existingSettings.company_tagline !== data.company_tagline) changedFields.push('company_tagline');
-      if (existingSettings.contact_email !== data.contact_email) changedFields.push('contact_email');
-      if (existingSettings.contact_phone !== data.contact_phone) changedFields.push('contact_phone');
-      if (existingSettings.wire_bank_name !== data.wire_bank_name) changedFields.push('wire_bank_name');
-      if (existingSettings.wire_routing_number !== data.wire_routing_number) changedFields.push('wire_routing_number');
-      if (existingSettings.wire_account_number !== data.wire_account_number) changedFields.push('wire_account_number');
-      if (existingSettings.wire_account_name !== data.wire_account_name) changedFields.push('wire_account_name');
-      if (Number(existingSettings.fee_recording) !== data.fee_recording) changedFields.push('fee_recording');
-      if (Number(existingSettings.fee_payoff_processing) !== data.fee_payoff_processing) changedFields.push('fee_payoff_processing');
-    }
+    // Compute changed fields for audit log
+    const changedFields = existingSettings
+      ? computeChangedFields(
+          {
+            company_name: existingSettings.company_name,
+            company_tagline: existingSettings.company_tagline,
+            contact_email: existingSettings.contact_email,
+            contact_phone: existingSettings.contact_phone,
+            wire_bank_name: existingSettings.wire_bank_name,
+            wire_routing_number: existingSettings.wire_routing_number,
+            wire_account_number: existingSettings.wire_account_number,
+            wire_account_name: existingSettings.wire_account_name,
+            fee_recording: Number(existingSettings.fee_recording),
+            fee_payoff_processing: Number(existingSettings.fee_payoff_processing),
+          },
+          data
+        )
+      : [];
 
-    // Create audit log entry
-    await createAuditLogEntry({
+    // Create audit log entry (category auto-derived as 'internal')
+    await logAudit({
       loanId: null, // Company settings are not loan-specific
       actionType: 'company_settings_updated',
-      category: 'SETTINGS',
-      description: `Company settings updated: ${changedFields.join(', ') || 'no changes'}`,
+      description: `Company settings updated: ${changedFields.map(c => c.field).join(', ') || 'no changes'}`,
       performedBy: user.name,
       details: {
-        changedFields,
-        before: existingSettings
-          ? {
-              company_name: existingSettings.company_name,
-              contact_email: existingSettings.contact_email,
-              fee_recording: Number(existingSettings.fee_recording),
-              fee_payoff_processing: Number(existingSettings.fee_payoff_processing),
-            }
-          : null,
-        after: {
-          company_name: data.company_name,
-          contact_email: data.contact_email,
-          fee_recording: data.fee_recording,
-          fee_payoff_processing: data.fee_payoff_processing,
-        },
+        changed_fields: changedFields,
       },
     });
 

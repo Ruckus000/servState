@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { sql } from '@/lib/db';
-import { errorResponse, successResponse, validateLoanAccess, createAuditLogEntry, requireCsrf } from '@/lib/api-helpers';
+import { errorResponse, successResponse, validateLoanAccess, requireCsrf } from '@/lib/api-helpers';
+import { logAudit } from '@/lib/audit';
 import { messageCreateSchema } from '@/lib/schemas';
 
 /**
@@ -103,11 +104,10 @@ export async function POST(request: NextRequest) {
 
     const message = result[0];
 
-    // Create audit log entry
-    await createAuditLogEntry({
+    // Create audit log entry (category auto-derived as 'communication')
+    await logAudit({
       loanId: data.loan_id,
       actionType: 'message_sent',
-      category: 'communication',
       description: `Message sent: ${data.subject}`,
       performedBy: user.name,
       details: {

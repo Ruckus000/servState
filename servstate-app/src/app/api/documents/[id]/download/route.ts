@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { sql } from '@/lib/db';
 import { errorResponse, successResponse, validateLoanAccess } from '@/lib/api-helpers';
+import { logAudit } from '@/lib/audit';
 import { generatePresignedDownloadUrl, extractFilenameFromKey } from '@/lib/s3';
 
 /**
@@ -58,6 +59,20 @@ export async function GET(
       document.storage_path,
       filename
     );
+
+    // Log document access (category auto-derived as 'document')
+    await logAudit({
+      loanId: document.loan_id,
+      actionType: 'document_accessed',
+      description: `Document downloaded: ${document.name}`,
+      performedBy: user.name,
+      details: {
+        document_id: documentId,
+        document_type: document.type,
+        filename,
+      },
+      referenceId: documentId,
+    });
 
     return successResponse({
       downloadUrl: presignedDownload.url,

@@ -1,7 +1,8 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { sql, query } from '@/lib/db';
-import { errorResponse, successResponse, validateLoanAccess, createAuditLogEntry } from '@/lib/api-helpers';
+import { errorResponse, successResponse, validateLoanAccess } from '@/lib/api-helpers';
+import { logAudit, computeChangedFields } from '@/lib/audit';
 import { loanUpdateSchema } from '@/lib/schemas';
 import { normalizeLoan } from '@/lib/normalize';
 import type { Loan } from '@/types/loan';
@@ -129,16 +130,20 @@ export async function PUT(
     // Normalize numeric fields (PostgreSQL NUMERIC comes as strings)
     const updatedLoan = normalizeLoan(result[0] as unknown as Record<string, unknown>);
 
-    // Create audit log entry
-    await createAuditLogEntry({
+    // Compute changed fields for audit log
+    const changedFields = computeChangedFields(
+      oldLoan as Record<string, unknown>,
+      updates as Record<string, unknown>
+    );
+
+    // Create audit log entry (category auto-derived as 'lifecycle')
+    await logAudit({
       loanId,
       actionType: 'loan_updated',
-      category: 'loan',
-      description: `Loan information updated`,
+      description: `Loan information updated: ${changedFields.map(c => c.field).join(', ')}`,
       performedBy: user.name,
       details: {
-        changes: updates,
-        previous: oldLoan,
+        changed_fields: changedFields,
       },
     });
 
@@ -269,16 +274,20 @@ export async function PATCH(
     // Normalize numeric fields (PostgreSQL NUMERIC comes as strings)
     const updatedLoan = normalizeLoan(result[0] as unknown as Record<string, unknown>);
 
-    // Create audit log entry
-    await createAuditLogEntry({
+    // Compute changed fields for audit log
+    const changedFields = computeChangedFields(
+      oldLoan as Record<string, unknown>,
+      updates as Record<string, unknown>
+    );
+
+    // Create audit log entry (category auto-derived as 'lifecycle')
+    await logAudit({
       loanId,
       actionType: 'loan_updated',
-      category: 'loan',
-      description: `Loan information updated`,
+      description: `Loan information updated: ${changedFields.map(c => c.field).join(', ')}`,
       performedBy: user.name,
       details: {
-        changes: updates,
-        previous: oldLoan,
+        changed_fields: changedFields,
       },
     });
 

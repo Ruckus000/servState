@@ -12,6 +12,7 @@ import {
   Home,
   ClipboardList,
   StickyNote,
+  Lock,
   ChevronDown,
   ChevronUp,
   Search,
@@ -63,6 +64,7 @@ const categoryIcons: Record<AuditActionCategory, React.ReactNode> = {
   insurance: <Home className="h-4 w-4" />,
   collections: <ClipboardList className="h-4 w-4" />,
   internal: <StickyNote className="h-4 w-4" />,
+  security: <Lock className="h-4 w-4" />,
 };
 
 const categoryColors: Record<AuditActionCategory, string> = {
@@ -76,6 +78,7 @@ const categoryColors: Record<AuditActionCategory, string> = {
   insurance: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400',
   collections: 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400',
   internal: 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-400',
+  security: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400',
 };
 
 export function AuditLogTable({ entries, className }: AuditLogTableProps) {
