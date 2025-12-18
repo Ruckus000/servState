@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { FileText, Loader2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { FileText, Loader2, Download, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -16,6 +16,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { formatCurrency } from '@/lib/format';
 import { api } from '@/lib/api-client';
+import { useSavePayoffDocument } from '@/hooks/use-document-save';
 import type { Loan } from '@/types/loan';
 
 interface PayoffModalProps {
@@ -38,26 +39,43 @@ export function PayoffModal({ open, onOpenChange, loan }: PayoffModalProps) {
   const defaultGoodThroughDate = formatDateForInput(addDays(new Date(), 30));
   const [goodThroughDate, setGoodThroughDate] = useState(defaultGoodThroughDate);
   const [isGenerating, setIsGenerating] = useState(false);
+  const blobUrlRef = useRef<string | null>(null);
 
-  const handleGenerate = async () => {
+  // Hook for saving document
+  const saveDocument = useSavePayoffDocument(loan.id);
+
+  // Clean up blob URL on unmount
+  useEffect(() => {
+    return () => {
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+      }
+    };
+  }, []);
+
+  const handleDownload = async () => {
     setIsGenerating(true);
 
     try {
       // Use centralized API client with CSRF token handling
       const blob = await api.postBlob(`/api/loans/${loan.id}/documents/payoff`, { goodThroughDate });
 
-      // Download the PDF
+      // Store blob URL for potential re-download
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+      }
       const url = URL.createObjectURL(blob);
+      blobUrlRef.current = url;
+
+      // Download the PDF
       const a = document.createElement('a');
       a.href = url;
       a.download = `payoff-${loan.loan_number}-${goodThroughDate}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
 
-      toast.success('Payoff statement generated successfully');
-      onOpenChange(false);
+      toast.success('Payoff statement downloaded');
     } catch (error) {
       console.error('Error generating payoff statement:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to generate payoff statement');
@@ -66,10 +84,53 @@ export function PayoffModal({ open, onOpenChange, loan }: PayoffModalProps) {
     }
   };
 
+  const handleSave = async () => {
+    try {
+      const result = await saveDocument.mutateAsync({ goodThroughDate });
+
+      if (result.isExisting) {
+        toast.info('Document already saved (within 5-minute window)');
+      } else {
+        toast.success('Payoff statement saved to Documents', {
+          action: {
+            label: 'View',
+            onClick: () => {
+              // Close modal - documents list will be refreshed by query invalidation
+              onOpenChange(false);
+            },
+          },
+        });
+      }
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error saving payoff statement:', error);
+      const message = error instanceof Error ? error.message : 'Failed to save payoff statement';
+
+      // Check for rate limit error
+      if (message.includes('Rate limit')) {
+        toast.error(message);
+      } else {
+        toast.error(message, {
+          action: {
+            label: 'Download Instead',
+            onClick: handleDownload,
+          },
+        });
+      }
+    }
+  };
+
   const handleClose = () => {
     setGoodThroughDate(defaultGoodThroughDate);
+    // Clean up blob URL
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current);
+      blobUrlRef.current = null;
+    }
     onOpenChange(false);
   };
+
+  const isLoading = isGenerating || saveDocument.isPending;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -104,6 +165,7 @@ export function PayoffModal({ open, onOpenChange, loan }: PayoffModalProps) {
               value={goodThroughDate}
               onChange={(e) => setGoodThroughDate(e.target.value)}
               min={formatDateForInput(new Date())}
+              disabled={isLoading}
             />
             <p className="text-xs text-muted-foreground">
               The payoff amount will be calculated through this date, including per diem interest.
@@ -117,18 +179,38 @@ export function PayoffModal({ open, onOpenChange, loan }: PayoffModalProps) {
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={handleClose} disabled={isGenerating}>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+          <Button variant="outline" onClick={handleClose} disabled={isLoading}>
             Cancel
           </Button>
-          <Button onClick={handleGenerate} disabled={isGenerating}>
+          <Button
+            variant="secondary"
+            onClick={handleSave}
+            disabled={isLoading}
+          >
+            {saveDocument.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                Save to Documents
+              </>
+            )}
+          </Button>
+          <Button onClick={handleDownload} disabled={isLoading}>
             {isGenerating ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Generating...
               </>
             ) : (
-              'Generate PDF'
+              <>
+                <Download className="mr-2 h-4 w-4" />
+                Download
+              </>
             )}
           </Button>
         </DialogFooter>

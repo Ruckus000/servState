@@ -5,6 +5,12 @@ vi.mock('@/lib/db', () => ({
   sql: vi.fn(),
 }));
 
+// Mock the csrf module to avoid NEXTAUTH_SECRET requirement
+vi.mock('@/lib/csrf', () => ({
+  validateCsrf: vi.fn().mockResolvedValue(true),
+  getCsrfToken: vi.fn().mockReturnValue('mock-csrf-token'),
+}));
+
 import { validateLoanAccess } from '@/lib/api-helpers';
 import { sql } from '@/lib/db';
 

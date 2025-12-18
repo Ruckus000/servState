@@ -1,7 +1,7 @@
 'use client';
 
-import { useState } from 'react';
-import { History, Loader2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { History, Loader2, Download, Save } from 'lucide-react';
 import { toast } from 'sonner';
 import {
   Dialog,
@@ -15,6 +15,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { api } from '@/lib/api-client';
+import { useSavePaymentHistoryDocument } from '@/hooks/use-document-save';
 import type { Loan } from '@/types/loan';
 
 interface PaymentHistoryModalProps {
@@ -43,6 +44,19 @@ export function PaymentHistoryModal({ open, onOpenChange, loan }: PaymentHistory
   const [fromDate, setFromDate] = useState(formatDateForInput(getStartOfYear()));
   const [toDate, setToDate] = useState(today);
   const [isGenerating, setIsGenerating] = useState(false);
+  const blobUrlRef = useRef<string | null>(null);
+
+  // Hook for saving document
+  const saveDocument = useSavePaymentHistoryDocument(loan.id);
+
+  // Clean up blob URL on unmount
+  useEffect(() => {
+    return () => {
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+      }
+    };
+  }, []);
 
   const handleQuickSelect = (preset: 'ytd' | 'last12' | 'all') => {
     const now = new Date();
@@ -64,25 +78,29 @@ export function PaymentHistoryModal({ open, onOpenChange, loan }: PaymentHistory
     }
   };
 
-  const handleGenerate = async () => {
+  const handleDownload = async () => {
     setIsGenerating(true);
 
     try {
       // Use centralized API client with CSRF token handling
       const blob = await api.postBlob(`/api/loans/${loan.id}/documents/history`, { fromDate, toDate });
 
-      // Download the PDF
+      // Store blob URL for potential re-download
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+      }
       const url = URL.createObjectURL(blob);
+      blobUrlRef.current = url;
+
+      // Download the PDF
       const a = document.createElement('a');
       a.href = url;
       a.download = `payment-history-${loan.loan_number}-${fromDate}-to-${toDate}.pdf`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
-      URL.revokeObjectURL(url);
 
-      toast.success('Payment history generated successfully');
-      onOpenChange(false);
+      toast.success('Payment history downloaded');
     } catch (error) {
       console.error('Error generating payment history:', error);
       toast.error(error instanceof Error ? error.message : 'Failed to generate payment history');
@@ -91,11 +109,54 @@ export function PaymentHistoryModal({ open, onOpenChange, loan }: PaymentHistory
     }
   };
 
+  const handleSave = async () => {
+    try {
+      const result = await saveDocument.mutateAsync({ fromDate, toDate });
+
+      if (result.isExisting) {
+        toast.info('Document already saved (within 5-minute window)');
+      } else {
+        toast.success('Payment history saved to Documents', {
+          action: {
+            label: 'View',
+            onClick: () => {
+              // Close modal - documents list will be refreshed by query invalidation
+              onOpenChange(false);
+            },
+          },
+        });
+      }
+      onOpenChange(false);
+    } catch (error) {
+      console.error('Error saving payment history:', error);
+      const message = error instanceof Error ? error.message : 'Failed to save payment history';
+
+      // Check for rate limit error
+      if (message.includes('Rate limit')) {
+        toast.error(message);
+      } else {
+        toast.error(message, {
+          action: {
+            label: 'Download Instead',
+            onClick: handleDownload,
+          },
+        });
+      }
+    }
+  };
+
   const handleClose = () => {
     setFromDate(formatDateForInput(getStartOfYear()));
     setToDate(today);
+    // Clean up blob URL
+    if (blobUrlRef.current) {
+      URL.revokeObjectURL(blobUrlRef.current);
+      blobUrlRef.current = null;
+    }
     onOpenChange(false);
   };
+
+  const isLoading = isGenerating || saveDocument.isPending;
 
   return (
     <Dialog open={open} onOpenChange={handleClose}>
@@ -121,6 +182,7 @@ export function PaymentHistoryModal({ open, onOpenChange, loan }: PaymentHistory
                 size="sm"
                 onClick={() => handleQuickSelect('ytd')}
                 className="flex-1"
+                disabled={isLoading}
               >
                 Year to Date
               </Button>
@@ -130,6 +192,7 @@ export function PaymentHistoryModal({ open, onOpenChange, loan }: PaymentHistory
                 size="sm"
                 onClick={() => handleQuickSelect('last12')}
                 className="flex-1"
+                disabled={isLoading}
               >
                 Last 12 Months
               </Button>
@@ -139,6 +202,7 @@ export function PaymentHistoryModal({ open, onOpenChange, loan }: PaymentHistory
                 size="sm"
                 onClick={() => handleQuickSelect('all')}
                 className="flex-1"
+                disabled={isLoading}
               >
                 All Time
               </Button>
@@ -155,6 +219,7 @@ export function PaymentHistoryModal({ open, onOpenChange, loan }: PaymentHistory
                 value={fromDate}
                 onChange={(e) => setFromDate(e.target.value)}
                 max={toDate}
+                disabled={isLoading}
               />
             </div>
             <div className="space-y-2">
@@ -166,6 +231,7 @@ export function PaymentHistoryModal({ open, onOpenChange, loan }: PaymentHistory
                 onChange={(e) => setToDate(e.target.value)}
                 min={fromDate}
                 max={today}
+                disabled={isLoading}
               />
             </div>
           </div>
@@ -177,18 +243,38 @@ export function PaymentHistoryModal({ open, onOpenChange, loan }: PaymentHistory
           </div>
         </div>
 
-        <DialogFooter className="gap-2 sm:gap-0">
-          <Button variant="outline" onClick={handleClose} disabled={isGenerating}>
+        <DialogFooter className="flex-col sm:flex-row gap-2">
+          <Button variant="outline" onClick={handleClose} disabled={isLoading}>
             Cancel
           </Button>
-          <Button onClick={handleGenerate} disabled={isGenerating || !fromDate || !toDate}>
+          <Button
+            variant="secondary"
+            onClick={handleSave}
+            disabled={isLoading || !fromDate || !toDate}
+          >
+            {saveDocument.isPending ? (
+              <>
+                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                Saving...
+              </>
+            ) : (
+              <>
+                <Save className="mr-2 h-4 w-4" />
+                Save to Documents
+              </>
+            )}
+          </Button>
+          <Button onClick={handleDownload} disabled={isLoading || !fromDate || !toDate}>
             {isGenerating ? (
               <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Generating...
               </>
             ) : (
-              'Generate PDF'
+              <>
+                <Download className="mr-2 h-4 w-4" />
+                Download
+              </>
             )}
           </Button>
         </DialogFooter>

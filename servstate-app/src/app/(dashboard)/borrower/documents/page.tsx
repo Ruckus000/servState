@@ -181,7 +181,7 @@ export default function BorrowerDocumentsPage() {
               description="Try adjusting your search or filter criteria"
             />
           ) : (
-            <DocumentList documents={filteredDocuments} isLoading={isLoading} />
+            <DocumentList documents={filteredDocuments} loanId={loanId} isLoading={false} userRole="borrower" />
           )}
         </CardContent>
       </Card>
