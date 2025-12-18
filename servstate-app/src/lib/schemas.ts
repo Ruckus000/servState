@@ -166,5 +166,58 @@ export const companySettingsUpdateSchema = z.object({
   fee_payoff_processing: z.number().min(0, 'Fee cannot be negative').max(10000),
 });
 
+// ============================================
+// Date validation helpers
+// ============================================
+
+const dateRegex = /^\d{4}-\d{2}-\d{2}$/;
+
+const validDateString = z.string().regex(dateRegex, 'Invalid date format. Use YYYY-MM-DD');
+
+const futureDateString = validDateString.refine(
+  (date) => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return new Date(date) >= today;
+  },
+  { message: 'Date cannot be in the past' }
+);
+
+const pastOrTodayDateString = validDateString.refine(
+  (date) => {
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    return new Date(date) <= today;
+  },
+  { message: 'Date cannot be in the future' }
+);
+
+// ============================================
+// Document save schemas
+// ============================================
+
+export const payoffSaveSchema = z.object({
+  goodThroughDate: futureDateString,
+  regenerate: z.boolean().optional(),
+});
+
+export const paymentHistorySaveSchema = z.object({
+  fromDate: pastOrTodayDateString,
+  toDate: pastOrTodayDateString,
+  regenerate: z.boolean().optional(),
+}).refine(
+  (data) => new Date(data.fromDate) <= new Date(data.toDate),
+  { message: 'From date must be before or equal to To date', path: ['fromDate'] }
+);
+
+export const documentVisibilitySchema = z.object({
+  visible: z.boolean(),
+});
+
+
+
+
+
+
 
 

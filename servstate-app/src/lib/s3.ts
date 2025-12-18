@@ -1,5 +1,6 @@
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from '@aws-sdk/client-s3';
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
+import { randomUUID } from 'crypto';
 
 // Type definitions
 export interface PresignedUploadUrl {
@@ -170,6 +171,59 @@ export async function deleteObject(key: string): Promise<void> {
   });
 
   await s3Client.send(command);
+}
+
+export interface UploadBufferResult {
+  key: string;
+  bucket: string;
+  size: number;
+}
+
+/**
+ * Upload a buffer directly to S3 (for server-generated documents)
+ * Uses UUID in key to prevent race conditions
+ *
+ * @param loanId - Loan ID for organizing documents
+ * @param filename - Human-readable filename
+ * @param buffer - File contents as Buffer
+ * @param contentType - MIME type (defaults to application/pdf)
+ * @param metadata - Optional metadata for audit trail
+ * @returns Upload result with S3 key
+ */
+export async function uploadBuffer(
+  loanId: string,
+  filename: string,
+  buffer: Buffer,
+  contentType: string = 'application/pdf',
+  metadata?: Record<string, string>
+): Promise<UploadBufferResult> {
+  // Use UUID to prevent race conditions when same file is generated concurrently
+  const uuid = randomUUID();
+  const sanitizedName = sanitizeFilename(filename);
+  const key = `documents/${loanId}/${uuid}-${sanitizedName}`;
+
+  const command = new PutObjectCommand({
+    Bucket: BUCKET_NAME,
+    Key: key,
+    Body: buffer,
+    ContentType: contentType,
+    // Server-side encryption for compliance
+    ServerSideEncryption: 'AES256',
+    // Metadata for audit trail
+    Metadata: {
+      'upload-timestamp': Date.now().toString(),
+      'generated-by': 'system',
+      ...metadata,
+    },
+  });
+
+  await s3Client.send(command);
+
+  return {
+    key,
+    bucket: BUCKET_NAME,
+    size: buffer.length,
+  };
 }
 
 /**
