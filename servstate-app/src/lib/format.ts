@@ -17,14 +17,24 @@ export function formatPercent(value: number, decimals: number = 2): string {
 
 /**
  * Format a date string to a readable format
+ * Uses manual string building to avoid SSR/client hydration mismatches
+ * caused by timezone differences in Intl.DateTimeFormat
  */
-export function formatDate(dateString: string, options?: Intl.DateTimeFormatOptions): string {
-  const date = new Date(dateString);
-  return new Intl.DateTimeFormat('en-US', options || {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  }).format(date);
+export function formatDate(dateString: string): string {
+  // Extract date portion to avoid timezone shifts
+  // "2025-01-15T00:00:00.000Z" → "2025-01-15"
+  const datePart = dateString.includes('T')
+    ? dateString.split('T')[0]
+    : dateString;
+
+  const [year, month, day] = datePart.split('-').map(Number);
+
+  const months = [
+    'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
+    'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+  ];
+
+  return `${months[month - 1]} ${day}, ${year}`;
 }
 
 /**

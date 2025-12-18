@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { ArrowLeft, Phone, Mail, MapPin, Calendar, DollarSign, Percent, CreditCard, Loader2, Pencil } from 'lucide-react';
@@ -374,8 +376,11 @@ export default function LoanDetailPage() {
               )}
               <DocumentList
                 documents={documents}
+                loanId={loanId}
                 isLoading={documentsLoading}
                 showTimestamp={true}
+                userRole="servicer"
+                showArchived={true}
               />
             </CardContent>
           </Card>
