@@ -39,29 +39,9 @@ function getS3Client(): S3Client {
     return s3ClientInstance;
   }
 
-  // #region agent log
-  console.log('[DEBUG] Creating S3Client - env vars check:', {
-    accessKeyIdPrefix: process.env.AWS_ACCESS_KEY_ID?.substring(0, 4) || 'UNDEFINED',
-    accessKeyIdLength: process.env.AWS_ACCESS_KEY_ID?.length || 0,
-    secretKeyPrefix: process.env.AWS_SECRET_ACCESS_KEY?.substring(0, 4) || 'UNDEFINED',
-    secretKeyLength: process.env.AWS_SECRET_ACCESS_KEY?.length || 0,
-    hasSessionToken: !!process.env.AWS_SESSION_TOKEN,
-    region: process.env.AWS_REGION || 'UNDEFINED',
-    bucket: process.env.AWS_S3_BUCKET || 'UNDEFINED',
-  });
-  fetch('http://127.0.0.1:7242/ingest/87f2cbbe-a1e1-4b67-90f7-00fcfc8f0474', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 's3.ts:getS3Client', message: 'Creating S3Client - env vars check', data: { accessKeyIdPrefix: process.env.AWS_ACCESS_KEY_ID?.substring(0, 4) || 'UNDEFINED', accessKeyIdLength: process.env.AWS_ACCESS_KEY_ID?.length || 0, secretKeyPrefix: process.env.AWS_SECRET_ACCESS_KEY?.substring(0, 4) || 'UNDEFINED', secretKeyLength: process.env.AWS_SECRET_ACCESS_KEY?.length || 0, hasSessionToken: !!process.env.AWS_SESSION_TOKEN, region: process.env.AWS_REGION || 'UNDEFINED', bucket: process.env.AWS_S3_BUCKET || 'UNDEFINED' }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' }) }).catch(() => { });
-  // #endregion agent log
-
   // Validate required env vars
   if (!process.env.AWS_ACCESS_KEY_ID || !process.env.AWS_SECRET_ACCESS_KEY) {
-    const errorMsg = 'AWS credentials not found in environment variables. Check .env.local file.';
-    console.error('[ERROR]', errorMsg, {
-      hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID,
-      hasSecret: !!process.env.AWS_SECRET_ACCESS_KEY,
-      region: process.env.AWS_REGION,
-      bucket: process.env.AWS_S3_BUCKET,
-    });
-    throw new Error(errorMsg);
+    throw new Error('AWS credentials not found in environment variables. Check .env.local file.');
   }
 
   if (!process.env.AWS_S3_BUCKET) {
@@ -77,33 +57,7 @@ function getS3Client(): S3Client {
     },
   };
 
-  // #region agent log
-  console.log('[DEBUG] Using explicit credentials from env vars:', {
-    accessKeyIdPrefix: process.env.AWS_ACCESS_KEY_ID.substring(0, 4),
-    region: s3ClientConfig.region,
-  });
-  fetch('http://127.0.0.1:7242/ingest/87f2cbbe-a1e1-4b67-90f7-00fcfc8f0474', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 's3.ts:getS3Client', message: 'Using explicit credentials from env vars', data: { accessKeyIdPrefix: process.env.AWS_ACCESS_KEY_ID.substring(0, 4), region: s3ClientConfig.region }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'A' }) }).catch(() => { });
-  // #endregion agent log
-
   s3ClientInstance = new S3Client(s3ClientConfig);
-
-  // #region agent log
-  (async () => {
-    try {
-      const creds = await s3ClientInstance!.config.credentials();
-      console.log('[DEBUG] S3Client resolved credentials:', {
-        resolvedAccessKeyPrefix: creds?.accessKeyId?.substring(0, 4) || 'UNDEFINED',
-        hasSecret: !!creds?.secretAccessKey,
-        hasSessionToken: !!creds?.sessionToken,
-      });
-      fetch('http://127.0.0.1:7242/ingest/87f2cbbe-a1e1-4b67-90f7-00fcfc8f0474', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 's3.ts:getS3Client', message: 'S3Client resolved credentials', data: { resolvedAccessKeyPrefix: creds?.accessKeyId?.substring(0, 4) || 'UNDEFINED', resolvedAccessKeyLength: creds?.accessKeyId?.length || 0, hasSecret: !!creds?.secretAccessKey, hasSessionToken: !!creds?.sessionToken }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'B' }) }).catch(() => { });
-    } catch (e) {
-      console.error('[ERROR] S3Client credential resolution error:', e);
-      fetch('http://127.0.0.1:7242/ingest/87f2cbbe-a1e1-4b67-90f7-00fcfc8f0474', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 's3.ts:getS3Client', message: 'S3Client credential resolution error', data: { error: String(e) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'B' }) }).catch(() => { });
-    }
-  })();
-  // #endregion agent log
-
   return s3ClientInstance;
 }
 
@@ -169,10 +123,6 @@ export async function generatePresignedUploadUrl(
   contentType: string,
   fileSizeBytes: number
 ): Promise<PresignedUploadUrl> {
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/87f2cbbe-a1e1-4b67-90f7-00fcfc8f0474', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 's3.ts:94', message: 'generatePresignedUploadUrl entry', data: { key, contentType, fileSizeBytes, envAccessKeyPrefix: process.env.AWS_ACCESS_KEY_ID?.substring(0, 4) || 'UNDEFINED' }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'C' }) }).catch(() => { });
-  // #endregion agent log
-
   // Validate inputs
   if (!isValidContentType(contentType)) {
     throw new Error(`Invalid content type: ${contentType}`);
@@ -194,18 +144,9 @@ export async function generatePresignedUploadUrl(
     },
   });
 
-  // #region agent log
-  let url;
-  try {
-    url = await getSignedUrl(getS3Client(), command, {
-      expiresIn: UPLOAD_EXPIRATION,
-    });
-    fetch('http://127.0.0.1:7242/ingest/87f2cbbe-a1e1-4b67-90f7-00fcfc8f0474', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 's3.ts:197', message: 'getSignedUrl success', data: { urlPrefix: url.substring(0, 50) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'C' }) }).catch(() => { });
-  } catch (e: any) {
-    fetch('http://127.0.0.1:7242/ingest/87f2cbbe-a1e1-4b67-90f7-00fcfc8f0474', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 's3.ts:197', message: 'getSignedUrl error', data: { error: String(e), errorMessage: e?.message, errorCode: e?.Code, errorAccessKeyId: e?.AccessKeyId?.substring(0, 4) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'C' }) }).catch(() => { });
-    throw e;
-  }
-  // #endregion agent log
+  const url = await getSignedUrl(getS3Client(), command, {
+    expiresIn: UPLOAD_EXPIRATION,
+  });
 
   return {
     url,
@@ -283,10 +224,6 @@ export async function uploadBuffer(
   contentType: string = 'application/pdf',
   metadata?: Record<string, string>
 ): Promise<UploadBufferResult> {
-  // #region agent log
-  fetch('http://127.0.0.1:7242/ingest/87f2cbbe-a1e1-4b67-90f7-00fcfc8f0474', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 's3.ts:193', message: 'uploadBuffer entry', data: { loanId, filename, contentType, bufferSize: buffer.length, envAccessKeyPrefix: process.env.AWS_ACCESS_KEY_ID?.substring(0, 4) || 'UNDEFINED' }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'D' }) }).catch(() => { });
-  // #endregion agent log
-
   // Use UUID to prevent race conditions when same file is generated concurrently
   const uuid = randomUUID();
   const sanitizedName = sanitizeFilename(filename);
@@ -307,15 +244,7 @@ export async function uploadBuffer(
     },
   });
 
-  // #region agent log
-  try {
-    await getS3Client().send(command);
-    fetch('http://127.0.0.1:7242/ingest/87f2cbbe-a1e1-4b67-90f7-00fcfc8f0474', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 's3.ts:309', message: 's3Client.send success', data: { key }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'D' }) }).catch(() => { });
-  } catch (e: any) {
-    fetch('http://127.0.0.1:7242/ingest/87f2cbbe-a1e1-4b67-90f7-00fcfc8f0474', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 's3.ts:309', message: 's3Client.send error', data: { error: String(e), errorMessage: e?.message, errorCode: e?.Code, errorAccessKeyId: e?.AccessKeyId?.substring(0, 4) }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'D' }) }).catch(() => { });
-    throw e;
-  }
-  // #endregion agent log
+  await getS3Client().send(command);
 
   return {
     key,
