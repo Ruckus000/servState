@@ -20,7 +20,7 @@ function getCsrfSecret(): string {
 
   // Skip during build time - these functions should only be called at runtime
   if (process.env.NEXT_PHASE === 'phase-production-build' ||
-      (process.env.VERCEL === '1' && process.env.CI === '1')) {
+    (process.env.VERCEL === '1' && process.env.CI === '1')) {
     throw new Error('CSRF operations cannot be performed during build time');
   }
 
