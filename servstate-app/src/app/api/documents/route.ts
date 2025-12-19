@@ -125,6 +125,10 @@ export async function POST(request: NextRequest) {
     // Generate S3 key
     const s3Key = generateDocumentKey(loan_id, name);
 
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/87f2cbbe-a1e1-4b67-90f7-00fcfc8f0474', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ location: 'documents/route.ts:129', message: 'Before generatePresignedUploadUrl', data: { envAccessKeyPrefix: process.env.AWS_ACCESS_KEY_ID?.substring(0, 4) || 'UNDEFINED', envSecretPrefix: process.env.AWS_SECRET_ACCESS_KEY?.substring(0, 4) || 'UNDEFINED', hasAccessKey: !!process.env.AWS_ACCESS_KEY_ID, hasSecret: !!process.env.AWS_SECRET_ACCESS_KEY, region: process.env.AWS_REGION || 'UNDEFINED' }, timestamp: Date.now(), sessionId: 'debug-session', runId: 'run1', hypothesisId: 'E' }) }).catch(() => { });
+    // #endregion agent log
+
     // Generate presigned upload URL
     const presignedUpload = await generatePresignedUploadUrl(
       s3Key,
@@ -192,6 +196,7 @@ export async function POST(request: NextRequest) {
     return errorResponse('Failed to create document upload', 500);
   }
 }
+
 
 
 
