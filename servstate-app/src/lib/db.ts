@@ -81,7 +81,10 @@ function getPool(): Pool {
  * @example
  * const loans = await sql`SELECT * FROM loans WHERE id = ${loanId}`;
  */
-export function sql(strings: TemplateStringsArray, ...values: unknown[]) {
+export async function sql<T = Record<string, unknown>>(
+  strings: TemplateStringsArray,
+  ...values: unknown[]
+): Promise<T[]> {
   // Runtime check: prevent database access during build
   if (isBuildTime() && !process.env.DATABASE_URL) {
     throw new Error(
@@ -90,7 +93,7 @@ export function sql(strings: TemplateStringsArray, ...values: unknown[]) {
       'If you need to access the database, ensure this code runs only at request time, not during build.'
     );
   }
-  return getSqlClient()(strings, ...values);
+  return getSqlClient()(strings, ...values) as Promise<T[]>;
 }
 
 /**
