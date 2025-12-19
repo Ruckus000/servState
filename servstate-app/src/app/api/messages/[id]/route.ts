@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { sql } from '@/lib/db';
+import type { MessageRow } from '@/types/db';
 import { errorResponse, successResponse, validateLoanAccess, requireCsrf } from '@/lib/api-helpers';
 
 /**
@@ -28,7 +29,7 @@ export async function PATCH(
     }
 
     // First, fetch the message to verify access
-    const message = await sql`
+    const message = await sql<Pick<MessageRow, 'id' | 'loan_id'>>`
       SELECT id, loan_id
       FROM messages
       WHERE id = ${messageId}
@@ -50,7 +51,7 @@ export async function PATCH(
     }
 
     // Update the message
-    const result = await sql`
+    const result = await sql<MessageRow>`
       UPDATE messages
       SET read = true
       WHERE id = ${messageId}

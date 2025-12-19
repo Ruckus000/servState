@@ -2,6 +2,7 @@ import { NextRequest } from 'next/server';
 import { createHash } from 'crypto';
 import bcrypt from 'bcryptjs';
 import { sql, transaction } from '@/lib/db';
+import type { PasswordResetTokenRow } from '@/types/db';
 import { errorResponse, successResponse, createAuditLogEntry } from '@/lib/api-helpers';
 import { checkAuthRateLimit, getClientIp } from '@/lib/rate-limit';
 import { z } from 'zod';
@@ -50,7 +51,7 @@ export async function POST(request: NextRequest) {
     const tokenHash = createHash('sha256').update(token).digest('hex');
 
     // Find valid token
-    const tokens = await sql`
+    const tokens = await sql<PasswordResetTokenRow & { email: string }>`
       SELECT prt.id, prt.user_id, prt.expires_at, prt.used, u.email
       FROM password_reset_tokens prt
       JOIN users u ON u.id = prt.user_id

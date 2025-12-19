@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { sql } from '@/lib/db';
+import type { TransactionRow } from '@/types/db';
 import { errorResponse, successResponse, validateLoanAccess, requireCsrf } from '@/lib/api-helpers';
 import { logAudit } from '@/lib/audit';
 import { transactionCreateSchema } from '@/lib/schemas';
@@ -31,7 +32,7 @@ export async function GET(request: NextRequest) {
       return errorResponse('Forbidden', 403);
     }
 
-    const transactions = await sql`
+    const transactions = await sql<TransactionRow>`
       SELECT * FROM active_transactions
       WHERE loan_id = ${loanId}
       ORDER BY date DESC
@@ -76,7 +77,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check for existing transaction with this idempotency key
-    const existing = await sql`
+    const existing = await sql<TransactionRow>`
       SELECT * FROM active_transactions WHERE idempotency_key = ${idempotencyKey}
     `;
 
@@ -105,7 +106,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert transaction with idempotency key
-    const result = await sql`
+    const result = await sql<TransactionRow>`
       INSERT INTO transactions (
         loan_id,
         date,
@@ -148,7 +149,7 @@ export async function POST(request: NextRequest) {
         amount: data.amount,
         idempotency_key: idempotencyKey,
       },
-      referenceId: transaction.reference_number,
+      referenceId: transaction.reference_number ?? undefined,
     });
 
     // Update loan principal if this is a payment

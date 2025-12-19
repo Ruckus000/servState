@@ -3,6 +3,7 @@ import Credentials from 'next-auth/providers/credentials';
 import bcrypt from 'bcryptjs';
 import { sql } from './db';
 import type { UserRole } from '@/types';
+import type { UserRow } from '@/types/db';
 import { authConfig } from './auth.config';
 import { checkAuthRateLimit, getClientIp } from './rate-limit';
 import { logAudit } from './audit';
@@ -67,7 +68,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           }
 
           // Query the users table
-          const users = await sql`
+          const users = await sql<UserRow>`
             SELECT id, email, name, role, avatar, password_hash
             FROM users
             WHERE email = ${email}
@@ -81,6 +82,14 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           }
 
           const user = users[0];
+
+          // Check if user has a password hash
+          if (!user.password_hash) {
+            await logAuthEvent('login_failed', user.id, email, ip, {
+              reason: 'no_password_set',
+            });
+            return null;
+          }
 
           // Verify password
           const isValidPassword = await bcrypt.compare(

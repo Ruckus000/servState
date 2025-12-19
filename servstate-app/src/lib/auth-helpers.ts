@@ -40,7 +40,7 @@ export async function requireRole(role: UserRole) {
  * Get the loan ID associated with a borrower user
  */
 export async function getBorrowerLoanId(userId: string): Promise<string | null> {
-  const result = await sql`
+  const result = await sql<{ id: string }>`
     SELECT id FROM loans WHERE borrower_id = ${userId} LIMIT 1
   `;
   return result.length > 0 ? result[0].id : null;

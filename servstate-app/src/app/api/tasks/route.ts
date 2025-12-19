@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { sql } from '@/lib/db';
+import type { TaskRow } from '@/types/db';
 import { errorResponse, successResponse, createAuditLogEntry, validateLoanAccess, requireCsrf } from '@/lib/api-helpers';
 import { taskCreateSchema } from '@/lib/schemas';
 
@@ -37,7 +38,7 @@ export async function GET(request: NextRequest) {
       return errorResponse('Forbidden', 403);
     }
 
-    const tasks = await sql`
+    const tasks = await sql<TaskRow>`
       SELECT * FROM tasks
       WHERE loan_id = ${loanId}
       ORDER BY due_date ASC, priority DESC
@@ -92,7 +93,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Insert task
-    const result = await sql`
+    const result = await sql<TaskRow>`
       INSERT INTO tasks (
         loan_id,
         title,

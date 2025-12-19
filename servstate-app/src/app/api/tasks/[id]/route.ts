@@ -1,9 +1,9 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { sql, query } from '@/lib/db';
+import type { TaskRow } from '@/types/db';
 import { errorResponse, successResponse, createAuditLogEntry, requireCsrf } from '@/lib/api-helpers';
 import { taskUpdateSchema } from '@/lib/schemas';
-import type { Task } from '@/types/task';
 
 /**
  * PUT /api/tasks/[id]
@@ -45,11 +45,11 @@ export async function PUT(
     const updates = validation.data;
 
     // Fetch old task data to track changes
-    const oldTaskResult = await sql`SELECT * FROM tasks WHERE id = ${taskId}`;
+    const oldTaskResult = await sql<TaskRow>`SELECT * FROM tasks WHERE id = ${taskId}`;
     if (oldTaskResult.length === 0) {
       return errorResponse('Task not found', 404);
     }
-    const oldTask = oldTaskResult[0] as Task;
+    const oldTask = oldTaskResult[0];
 
     // Build update query
     const setParts: string[] = [];
@@ -97,7 +97,7 @@ export async function PUT(
     values.push(taskId);
 
     const queryText = `UPDATE tasks SET ${setParts.join(', ')} WHERE id = $${paramIndex} RETURNING *`;
-    const result = await query<Task>(queryText, values);
+    const result = await query<TaskRow>(queryText, values);
 
     const task = result[0];
 

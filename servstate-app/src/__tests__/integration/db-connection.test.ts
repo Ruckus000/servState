@@ -64,7 +64,7 @@ describe.skipIf(skipIntegration)('Database Connection Integration', () => {
       expect(result.length).toBeGreaterThan(0);
 
       // Verify new columns exist
-      const columnNames = result.map((r) => r.column_name);
+      const columnNames = result.map((r: { column_name: string }) => r.column_name);
       expect(columnNames).toContain('status');
       expect(columnNames).toContain('idempotency_key');
       expect(columnNames).toContain('retention_until');

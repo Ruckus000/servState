@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { randomBytes, createHash } from 'crypto';
 import { sql } from '@/lib/db';
+import type { UserRow } from '@/types/db';
 import { sendPasswordResetEmail } from '@/lib/email';
 import { errorResponse, successResponse, createAuditLogEntry } from '@/lib/api-helpers';
 import { checkAuthRateLimit, getClientIp } from '@/lib/rate-limit';
@@ -40,7 +41,7 @@ export async function POST(request: NextRequest) {
     const { email } = validation.data;
 
     // Find user (don't reveal if email exists in response)
-    const users = await sql`
+    const users = await sql<Pick<UserRow, 'id' | 'name' | 'email'>>`
       SELECT id, name, email FROM users WHERE email = ${email.toLowerCase()}
     `;
 

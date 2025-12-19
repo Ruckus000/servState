@@ -1,6 +1,7 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
 import { sql } from '@/lib/db';
+import type { DocumentRow } from '@/types/db';
 import { errorResponse, successResponse, validateLoanAccess } from '@/lib/api-helpers';
 import { logAudit } from '@/lib/audit';
 import { generatePresignedDownloadUrl, extractFilenameFromKey } from '@/lib/s3';
@@ -30,7 +31,7 @@ export async function GET(
     const { user } = session;
 
     // Get document metadata
-    const documents = await sql`
+    const documents = await sql<DocumentRow>`
       SELECT * FROM active_documents WHERE id = ${documentId}
     `;
 
