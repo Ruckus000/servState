@@ -11,7 +11,22 @@ function getSecret(): string {
   return secret;
 }
 
-const CSRF_SECRET = getSecret();
+// Lazy initialization - secret is only retrieved when first needed at runtime
+// This prevents build-time errors when NEXTAUTH_SECRET isn't available
+let _csrfSecret: string | null = null;
+
+function getCsrfSecret(): string {
+  if (_csrfSecret) return _csrfSecret;
+
+  // Skip during build time - these functions should only be called at runtime
+  if (process.env.NEXT_PHASE === 'phase-production-build' ||
+      (process.env.VERCEL === '1' && process.env.CI === '1')) {
+    throw new Error('CSRF operations cannot be performed during build time');
+  }
+
+  _csrfSecret = getSecret();
+  return _csrfSecret;
+}
 
 /**
  * Generate a CSRF token tied to a session ID
@@ -19,7 +34,7 @@ const CSRF_SECRET = getSecret();
  */
 export function generateCsrfToken(sessionId: string): string {
   const token = randomBytes(32).toString('hex');
-  const hmac = createHmac('sha256', CSRF_SECRET)
+  const hmac = createHmac('sha256', getCsrfSecret())
     .update(`${sessionId}:${token}`)
     .digest('hex');
   return `${token}:${hmac}`;
@@ -45,7 +60,7 @@ export function validateCsrfToken(token: string, sessionId: string): boolean {
     return false;
   }
 
-  const expectedHmac = createHmac('sha256', CSRF_SECRET)
+  const expectedHmac = createHmac('sha256', getCsrfSecret())
     .update(`${sessionId}:${tokenPart}`)
     .digest('hex');
 
