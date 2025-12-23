@@ -1,6 +1,6 @@
 import { NextRequest } from 'next/server';
 import { auth } from '@/lib/auth';
-import { sql } from '@/lib/db';
+import { sql, query } from '@/lib/db';
 import { errorResponse, successResponse } from '@/lib/api-helpers';
 import { normalizeLoan } from '@/lib/normalize';
 
@@ -27,66 +27,56 @@ export async function GET(request: NextRequest) {
 
     if (user.role === 'borrower') {
       // Borrowers can only see their own loan
-      let conditions = [sql`borrower_id = ${user.id}`];
+      // Build WHERE clause dynamically with parameterized values
+      const params: unknown[] = [user.id];
+      let whereClause = 'borrower_id = $1';
+      let paramIndex = 2;
 
       if (status) {
-        conditions.push(sql`status = ${status}`);
+        whereClause += ` AND status = $${paramIndex}`;
+        params.push(status);
+        paramIndex++;
       }
 
       if (search) {
         const searchPattern = `%${search}%`;
-        conditions.push(sql`(
-          loan_number ILIKE ${searchPattern} OR
-          borrower_name ILIKE ${searchPattern} OR
-          address ILIKE ${searchPattern}
-        )`);
+        whereClause += ` AND (loan_number ILIKE $${paramIndex} OR borrower_name ILIKE $${paramIndex} OR address ILIKE $${paramIndex})`;
+        params.push(searchPattern);
+        paramIndex++;
       }
 
-      const whereClause = conditions.reduce((acc, cond, idx) =>
-        idx === 0 ? cond : sql`${acc} AND ${cond}`
+      loans = await query(
+        `SELECT * FROM loans WHERE ${whereClause} ORDER BY created_at DESC LIMIT 50`,
+        params
       );
-
-      loans = await sql`
-        SELECT * FROM loans
-        WHERE ${whereClause}
-        ORDER BY created_at DESC
-        LIMIT 50
-      `;
     } else {
       // Servicers and admins see all loans
-      let conditions = [];
+      // Build WHERE clause dynamically with parameterized values
+      const params: unknown[] = [];
+      let whereClause = '';
+      let paramIndex = 1;
 
       if (status) {
-        conditions.push(sql`status = ${status}`);
+        whereClause += `status = $${paramIndex}`;
+        params.push(status);
+        paramIndex++;
       }
 
       if (search) {
         const searchPattern = `%${search}%`;
-        conditions.push(sql`(
-          loan_number ILIKE ${searchPattern} OR
-          borrower_name ILIKE ${searchPattern} OR
-          address ILIKE ${searchPattern}
-        )`);
+        if (whereClause) {
+          whereClause += ` AND `;
+        }
+        whereClause += `(loan_number ILIKE $${paramIndex} OR borrower_name ILIKE $${paramIndex} OR address ILIKE $${paramIndex})`;
+        params.push(searchPattern);
+        paramIndex++;
       }
 
-      if (conditions.length > 0) {
-        const whereClause = conditions.reduce((acc, cond, idx) =>
-          idx === 0 ? cond : sql`${acc} AND ${cond}`
-        );
+      const queryText = whereClause
+        ? `SELECT * FROM loans WHERE ${whereClause} ORDER BY created_at DESC LIMIT 50`
+        : `SELECT * FROM loans ORDER BY created_at DESC LIMIT 50`;
 
-        loans = await sql`
-          SELECT * FROM loans
-          WHERE ${whereClause}
-          ORDER BY created_at DESC
-          LIMIT 50
-        `;
-      } else {
-        loans = await sql`
-          SELECT * FROM loans
-          ORDER BY created_at DESC
-          LIMIT 50
-        `;
-      }
+      loans = await query(queryText, params);
     }
 
     // Normalize numeric fields (PostgreSQL NUMERIC comes as strings)
